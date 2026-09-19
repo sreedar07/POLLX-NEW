@@ -37,14 +37,7 @@ func main() {
 		log.Println("[Admin Seed] Notice: ADMIN_EMAIL or ADMIN_PASSWORD not configured in environment; skipping seed.")
 	}
 
-	// Auto-seed default Poll question if not exists
-	seedPollCtx, cancelPoll := context.WithTimeout(context.Background(), 5*time.Second)
-	if defaultPoll, err := database.DB.SeedDefaultPoll(seedPollCtx); err != nil {
-		log.Printf("[Default Poll Seed] Warning: %v\n", err)
-	} else if defaultPoll != nil {
-		log.Printf("[Default Poll Seed] Successfully ensured default poll: '%s' with %d options\n", defaultPoll.Title, len(defaultPoll.Options))
-	}
-	cancelPoll()
+	// Polls are created exclusively by the Administrator on-demand (No random or fake default polls)
 
 	// Initialize Real-time WebSocket Hub
 	websocket.InitHub()

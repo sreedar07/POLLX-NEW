@@ -48,6 +48,8 @@ export const Dashboard = ({ navigate }) => {
   const [newDescription, setNewDescription] = useState("");
   const [newCategory, setNewCategory] = useState("Technology");
   const [isBlind, setIsBlind] = useState(false);
+  const [durationPreset, setDurationPreset] = useState("60");
+  const [customEndTime, setCustomEndTime] = useState("");
   const [newOptions, setNewOptions] = useState(["", "", ""]);
   const [creating, setCreating] = useState(false);
 
@@ -114,19 +116,25 @@ export const Dashboard = ({ navigate }) => {
     }
   };
 
-  // Sync real-time updates from WebSocket
+  // Sync real-time updates from WebSocket: live tallies, real entrant counts, and live incoming votes
   useEffect(() => {
     if (liveUpdate && analytics && (liveUpdate.poll_id === selectedPollId || !liveUpdate.poll_id)) {
       setAnalytics(prev => {
         if (!prev) return prev;
+        const newRecentVotes = liveUpdate.recent_vote
+          ? [liveUpdate.recent_vote, ...(prev.recent_votes || []).filter(v => v.receipt_hash !== liveUpdate.recent_vote.receipt_hash)]
+          : prev.recent_votes;
+
         return {
           ...prev,
-          total_votes: liveUpdate.total_votes,
-          optionVotes: liveUpdate.option_votes || prev.optionVotes
+          total_votes: liveUpdate.total_votes ?? prev.total_votes,
+          optionVotes: liveUpdate.option_votes || prev.optionVotes,
+          recent_votes: newRecentVotes,
+          active_viewers: liveUpdate.active_viewers ?? prev.active_viewers,
         };
       });
     }
-  }, [liveUpdate]);
+  }, [liveUpdate, selectedPollId]);
 
   const handlePollChange = (pollId) => {
     setSelectedPollId(pollId);
@@ -192,13 +200,20 @@ export const Dashboard = ({ navigate }) => {
 
     setCreating(true);
     try {
-      const created = await api.post("/api/polls", {
+      const payload = {
         title: newTitle.trim(),
         description: newDescription.trim(),
         category: newCategory,
         is_blind: isBlind,
-        options: validOpts
-      });
+        options: validOpts,
+        duration_minutes: parseInt(durationPreset, 10) || 60,
+      };
+
+      if (durationPreset === "custom" && customEndTime) {
+        payload.end_time = new Date(customEndTime).toISOString();
+      }
+
+      const created = await api.post("/api/polls", payload);
 
       setSuccessMsg(`New election '${created.title}' is now live!`);
       setTimeout(() => setSuccessMsg(""), 4000);
@@ -362,6 +377,38 @@ export const Dashboard = ({ navigate }) => {
               </div>
             </div>
 
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", marginBottom: "20px" }}>
+              <div>
+                <label className="form-label">Poll Duration / End Time</label>
+                <select
+                  value={durationPreset}
+                  onChange={(e) => setDurationPreset(e.target.value)}
+                  className="form-input"
+                >
+                  <option value="5">5 Minutes (Flash Poll)</option>
+                  <option value="15">15 Minutes</option>
+                  <option value="30">30 Minutes</option>
+                  <option value="60">1 Hour (Standard)</option>
+                  <option value="120">2 Hours</option>
+                  <option value="1440">24 Hours (Full Day)</option>
+                  <option value="custom">Custom End Time...</option>
+                </select>
+              </div>
+
+              {durationPreset === "custom" && (
+                <div>
+                  <label className="form-label">Custom End Date & Time</label>
+                  <input
+                    type="datetime-local"
+                    required
+                    value={customEndTime}
+                    onChange={(e) => setCustomEndTime(e.target.value)}
+                    className="form-input"
+                  />
+                </div>
+              )}
+            </div>
+
             <div style={{ marginBottom: "20px" }}>
               <label className="form-label">Candidate / Choice Options *</label>
               <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
@@ -510,13 +557,13 @@ export const Dashboard = ({ navigate }) => {
 
         <div className="glass-card" style={{ padding: "20px" }}>
           <div style={{ fontSize: "0.8rem", textTransform: "uppercase", color: "var(--text-muted)", fontWeight: 600 }}>
-            Live Audit Stream
+            Live Active Entrants
           </div>
-          <div style={{ fontSize: "1.25rem", fontWeight: 700, color: "#0f766e", marginTop: "6px" }}>
-            WebSocket Active
+          <div style={{ fontSize: "2rem", fontWeight: 800, color: "#0ea5e9", marginTop: "4px" }}>
+            {analytics?.active_viewers || liveUpdate?.active_viewers || 1}
           </div>
           <div style={{ fontSize: "0.75rem", color: "var(--accent-emerald)", marginTop: "4px" }}>
-            0s sync latency
+            Real-time connected viewers
           </div>
         </div>
       </div>

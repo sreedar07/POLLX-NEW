@@ -70,46 +70,81 @@ func (h *Hub) run() {
 				}
 			}
 			h.polls[client.pollID][client] = true
+			viewerCount := len(h.polls[client.pollID])
 			h.mu.Unlock()
 
-			// Send immediate current state to newly joined client
+			// Send immediate current state to newly joined client with real viewer count
 			votes, total, _ := database.Realtime.GetLiveVotes(context.Background(), client.pollID)
 			initialPayload, _ := json.Marshal(models.LivePollUpdate{
-				PollID:      client.pollID,
-				TotalVotes:  total,
-				OptionVotes: votes,
-				Timestamp:   time.Now().UnixMilli(),
+				PollID:        client.pollID,
+				TotalVotes:    total,
+				OptionVotes:   votes,
+				ActiveViewers: viewerCount,
+				Timestamp:     time.Now().UnixMilli(),
 			})
 			select {
 			case client.send <- initialPayload:
 			default:
 			}
 
+			// Broadcast updated viewer count to all clients watching this poll
+			go func(pID string, count int, v map[string]int64, t int64) {
+				GlobalHub.Broadcast(&models.LivePollUpdate{
+					PollID:        pID,
+					TotalVotes:    t,
+					OptionVotes:   v,
+					ActiveViewers: count,
+					Timestamp:     time.Now().UnixMilli(),
+				})
+			}(client.pollID, viewerCount, votes, total)
+
 		case client := <-h.unregister:
 			h.mu.Lock()
-			if clients, exists := h.polls[client.pollID]; exists {
+			var remainingViewers int
+			pollID := client.pollID
+			if clients, exists := h.polls[pollID]; exists {
 				if _, ok := clients[client]; ok {
 					delete(clients, client)
 					close(client.send)
 				}
-				if len(clients) == 0 {
-					delete(h.polls, client.pollID)
-					if cancelFn, hasCancel := h.cancelSubs[client.pollID]; hasCancel {
+				remainingViewers = len(clients)
+				if remainingViewers == 0 {
+					delete(h.polls, pollID)
+					if cancelFn, hasCancel := h.cancelSubs[pollID]; hasCancel {
 						cancelFn()
-						delete(h.cancelSubs, client.pollID)
+						delete(h.cancelSubs, pollID)
 					}
 				}
 			}
 			h.mu.Unlock()
 
+			if remainingViewers > 0 {
+				go func(pID string, count int) {
+					votes, total, _ := database.Realtime.GetLiveVotes(context.Background(), pID)
+					GlobalHub.Broadcast(&models.LivePollUpdate{
+						PollID:        pID,
+						TotalVotes:    total,
+						OptionVotes:   votes,
+						ActiveViewers: count,
+						Timestamp:     time.Now().UnixMilli(),
+					})
+				}(pollID, remainingViewers)
+			}
+
 		case update := <-h.broadcast:
+			h.mu.RLock()
+			clients := h.polls[update.PollID]
+			if update.ActiveViewers <= 0 && len(clients) > 0 {
+				update.ActiveViewers = len(clients)
+			}
+			h.mu.RUnlock()
+
 			payload, err := json.Marshal(update)
 			if err != nil {
 				continue
 			}
 
 			h.mu.RLock()
-			clients := h.polls[update.PollID]
 			for client := range clients {
 				select {
 				case client.send <- payload:
@@ -119,6 +154,15 @@ func (h *Hub) run() {
 				}
 			}
 			h.mu.RUnlock()
+		}
+	}
+}
+
+func (h *Hub) Broadcast(update *models.LivePollUpdate) {
+	if h != nil && h.broadcast != nil {
+		select {
+		case h.broadcast <- update:
+		default:
 		}
 	}
 }

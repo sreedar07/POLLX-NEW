@@ -11,6 +11,7 @@ import (
 
 	"live-polling-backend/database"
 	"live-polling-backend/models"
+	"live-polling-backend/websocket"
 
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -194,6 +195,42 @@ func (p *PollController) CreatePoll(c *gin.Context) {
 		category = "General Election"
 	}
 
+	now := time.Now()
+	var startTime, endTime time.Time
+
+	if req.StartTime != "" {
+		if parsed, err := time.Parse(time.RFC3339, req.StartTime); err == nil {
+			startTime = parsed
+		} else if parsed, err := time.Parse("2006-01-02T15:04", req.StartTime); err == nil {
+			startTime = parsed
+		} else {
+			startTime = now
+		}
+	} else {
+		startTime = now
+	}
+
+	if req.EndTime != "" {
+		if parsed, err := time.Parse(time.RFC3339, req.EndTime); err == nil {
+			endTime = parsed
+		} else if parsed, err := time.Parse("2006-01-02T15:04", req.EndTime); err == nil {
+			endTime = parsed
+		}
+	}
+
+	if endTime.IsZero() {
+		duration := req.DurationMinutes
+		if duration <= 0 {
+			duration = 60
+		}
+		endTime = startTime.Add(time.Duration(duration) * time.Minute)
+	}
+
+	durationMin := int(endTime.Sub(startTime).Minutes())
+	if durationMin <= 0 {
+		durationMin = 60
+	}
+
 	poll := models.Poll{
 		CreatorID:   creatorID,
 		CreatorName: username.(string),
@@ -203,6 +240,11 @@ func (p *PollController) CreatePoll(c *gin.Context) {
 		IsBlind:     req.IsBlind,
 		Options:     options,
 		IsActive:    true,
+		TotalVotes:  0,
+		StartTime:   &startTime,
+		EndTime:     &endTime,
+		DurationMin: durationMin,
+		CreatedAt:   now,
 	}
 
 	if err := database.DB.SetActivePoll(c.Request.Context(), &poll); err != nil {
@@ -291,16 +333,27 @@ func (p *PollController) Vote(c *gin.Context) {
 		return
 	}
 
+	now := time.Now()
+	if poll.StartTime != nil && now.Before(*poll.StartTime) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "This poll has not started yet"})
+		return
+	}
+	if poll.EndTime != nil && now.After(*poll.EndTime) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "This poll has expired and is no longer accepting votes"})
+		return
+	}
+
 	var req models.VoteRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	// Validate option exists
+	// Validate option exists (matches either option ID or option text)
 	var selectedOptionText string
 	for _, opt := range poll.Options {
-		if opt.ID == req.OptionID {
+		if opt.ID == req.OptionID || opt.Text == req.OptionID {
+			req.OptionID = opt.ID
 			selectedOptionText = opt.Text
 			break
 		}
@@ -333,7 +386,6 @@ func (p *PollController) Vote(c *gin.Context) {
 	}
 
 	// Generate unique cryptographic receipt hash
-	now := time.Now()
 	receiptHash := database.GenerateReceipt(idHex, req.OptionID, voterID, now.UnixMilli())
 
 	department := req.Department
@@ -356,6 +408,10 @@ func (p *PollController) Vote(c *gin.Context) {
 
 	_ = database.DB.UpdatePollVotes(context.Background(), pollID, update.OptionVotes, update.TotalVotes)
 	_ = database.DB.RecordVote(context.Background(), &voteRecord)
+
+	// Broadcast live vote update with full record to WebSocket clients and Admin Dashboard
+	update.RecentVote = &voteRecord
+	websocket.GlobalHub.Broadcast(update)
 
 	badges := []string{"Active Voter"}
 	if now.Sub(poll.CreatedAt) < 10*time.Minute {

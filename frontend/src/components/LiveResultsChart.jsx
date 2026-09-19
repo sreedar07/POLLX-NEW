@@ -60,17 +60,13 @@ export const LiveResultsChart = ({
   const [activeTab, setActiveTab] = useState("results");
   const [downloading, setDownloading] = useState(false);
 
-  // Compute percentages
-  const safeTotal = totalVotes > 0 ? totalVotes : options.reduce((acc, o) => acc + (o.votes || 0), 0);
-  const displayTotal = safeTotal > 0 ? safeTotal : (options.length > 0 ? 1200 : 0);
+  // Real-time vote tallies (strictly genuine voter input - ZERO fake data)
+  const safeTotal = totalVotes > 0 ? totalVotes : options.reduce((acc, o) => acc + Math.max(0, o.votes || 0), 0);
+  const displayTotal = safeTotal;
 
   const parsedOptions = options.map((opt, idx) => {
-    const rawVotes = opt.votes || 0;
-    const votes = safeTotal > 0 ? rawVotes : (
-      idx === 0 ? 504 : idx === 1 ? 336 : idx === 2 ? 180 : idx === 3 ? 120 : 60
-    );
-    const effectiveTotal = safeTotal > 0 ? safeTotal : 1200;
-    const percentage = effectiveTotal > 0 ? Math.round((votes / effectiveTotal) * 100) : 0;
+    const votes = Math.max(0, opt.votes || 0);
+    const percentage = safeTotal > 0 ? Math.round((votes / safeTotal) * 100) : 0;
     const theme = getOptionTheme(opt.text, idx);
     return {
       ...opt,

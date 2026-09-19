@@ -80,6 +80,13 @@ export const CreatePoll = ({ navigate }) => {
     }
   };
 
+  const [category, setCategory] = useState("General");
+  const [durationPreset, setDurationPreset] = useState("60"); // minutes
+  const [customEndTime, setCustomEndTime] = useState("");
+  const [startImmediately, setStartImmediately] = useState(true);
+  const [customStartTime, setCustomStartTime] = useState("");
+  const [isBlind, setIsBlind] = useState(false);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
@@ -105,11 +112,24 @@ export const CreatePoll = ({ navigate }) => {
 
     setLoading(true);
     try {
-      const poll = await api.post("/api/polls", {
+      const payload = {
         title: cleanTitle,
         description: description.trim(),
+        category: category.trim() || "General Election",
+        is_blind: isBlind,
         options: cleanOptions,
-      });
+        duration_minutes: parseInt(durationPreset, 10) || 60,
+      };
+
+      if (!startImmediately && customStartTime) {
+        payload.start_time = new Date(customStartTime).toISOString();
+      }
+
+      if (durationPreset === "custom" && customEndTime) {
+        payload.end_time = new Date(customEndTime).toISOString();
+      }
+
+      const poll = await api.post("/api/polls", payload);
 
       // Navigate straight to the created live poll
       navigate(`poll-${poll.id}`);
@@ -121,12 +141,16 @@ export const CreatePoll = ({ navigate }) => {
   };
 
   return (
-    <div style={{ maxWidth: "640px", margin: "40px auto", padding: "0 16px" }}>
+    <div style={{ maxWidth: "680px", margin: "40px auto", padding: "0 16px" }}>
       <div className="glass-card" style={{ padding: "36px" }}>
         <div style={{ marginBottom: "28px" }}>
-          <h2 style={{ fontSize: "1.75rem", fontWeight: 700 }}>Create Your Live Poll</h2>
-          <p style={{ color: "var(--text-muted)", fontSize: "0.9rem", marginTop: "4px" }}>
-            One poll per admin only. Ask one question, define choices, and share the live stream link with your audience.
+          <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "8px" }}>
+            <span className="category-pill tech">Administrator Console</span>
+            <span style={{ fontSize: "0.82rem", color: "var(--text-dim)" }}>Certified Election Setup</span>
+          </div>
+          <h2 style={{ fontSize: "1.85rem", fontWeight: 800 }}>Create Your Live Poll</h2>
+          <p style={{ color: "var(--text-muted)", fontSize: "0.92rem", marginTop: "4px" }}>
+            Define the election question, candidate options, and active duration. The live countdown timer will strictly track your scheduled window.
           </p>
         </div>
 
@@ -157,7 +181,7 @@ export const CreatePoll = ({ navigate }) => {
             <input
               type="text"
               required
-              placeholder="e.g. What is your favorite backend programming language?"
+              placeholder="e.g. Which initiative should our team prioritize for Q4?"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               className="form-input"
@@ -165,10 +189,10 @@ export const CreatePoll = ({ navigate }) => {
           </div>
 
           {/* Description (Optional) */}
-          <div style={{ marginBottom: "24px" }}>
+          <div style={{ marginBottom: "20px" }}>
             <label className="form-label">Context or Description (Optional)</label>
             <textarea
-              placeholder="Add extra context or instructions for voters..."
+              placeholder="Add extra context, voting criteria, or instructions for voters..."
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               className="form-input"
@@ -177,14 +201,106 @@ export const CreatePoll = ({ navigate }) => {
             />
           </div>
 
+          {/* Category */}
+          <div style={{ marginBottom: "24px" }}>
+            <label className="form-label">Category</label>
+            <input
+              type="text"
+              placeholder="e.g. Technology, Governance, Campus Vote, General"
+              value={category}
+              onChange={(e) => setCategory(e.target.value)}
+              className="form-input"
+            />
+          </div>
+
+          {/* Timing & End Time Configuration */}
+          <div style={{
+            padding: "20px",
+            borderRadius: "14px",
+            background: "var(--surface-muted)",
+            border: "1px solid var(--border-subtle)",
+            marginBottom: "28px"
+          }}>
+            <h3 style={{ fontSize: "1.05rem", fontWeight: 700, marginBottom: "12px", display: "flex", alignItems: "center", gap: "8px" }}>
+              ⏱️ Poll Timing & Auto-End Schedule
+            </h3>
+
+            {/* Start Schedule */}
+            <div style={{ marginBottom: "16px" }}>
+              <label className="form-label" style={{ marginBottom: "8px" }}>Start Time</label>
+              <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
+                <label style={{ display: "flex", alignItems: "center", gap: "8px", cursor: "pointer", fontSize: "0.9rem" }}>
+                  <input
+                    type="radio"
+                    name="startSchedule"
+                    checked={startImmediately}
+                    onChange={() => setStartImmediately(true)}
+                  />
+                  <span>Start immediately upon publishing</span>
+                </label>
+                <label style={{ display: "flex", alignItems: "center", gap: "8px", cursor: "pointer", fontSize: "0.9rem" }}>
+                  <input
+                    type="radio"
+                    name="startSchedule"
+                    checked={!startImmediately}
+                    onChange={() => setStartImmediately(false)}
+                  />
+                  <span>Schedule specific start time</span>
+                </label>
+              </div>
+
+              {!startImmediately && (
+                <input
+                  type="datetime-local"
+                  required
+                  value={customStartTime}
+                  onChange={(e) => setCustomStartTime(e.target.value)}
+                  className="form-input"
+                  style={{ marginTop: "10px" }}
+                />
+              )}
+            </div>
+
+            {/* Duration / End Time */}
+            <div>
+              <label className="form-label" style={{ marginBottom: "8px" }}>Duration / End Time</label>
+              <select
+                value={durationPreset}
+                onChange={(e) => setDurationPreset(e.target.value)}
+                className="form-input"
+                style={{ marginBottom: durationPreset === "custom" ? "10px" : "0" }}
+              >
+                <option value="5">5 Minutes (Flash Poll)</option>
+                <option value="15">15 Minutes (Quick Vote)</option>
+                <option value="30">30 Minutes</option>
+                <option value="60">1 Hour (Standard)</option>
+                <option value="120">2 Hours</option>
+                <option value="1440">24 Hours (Full Day)</option>
+                <option value="2880">48 Hours (2 Days)</option>
+                <option value="custom">Custom End Date & Time...</option>
+              </select>
+
+              {durationPreset === "custom" && (
+                <input
+                  type="datetime-local"
+                  required
+                  placeholder="Choose end date & time"
+                  value={customEndTime}
+                  onChange={(e) => setCustomEndTime(e.target.value)}
+                  className="form-input"
+                />
+              )}
+            </div>
+          </div>
+
           {/* Options List */}
           <div style={{ marginBottom: "28px" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
               <label className="form-label" style={{ marginBottom: 0 }}>
-                Voting Options (Min 2, Max 10)
+                Voting Options (Min 2, Max 10) <span style={{ color: "var(--accent-rose)" }}>*</span>
               </label>
               <span style={{ fontSize: "0.8rem", color: "var(--text-dim)" }}>
-                {options.length} of 10
+                {options.length} of 10 options
               </span>
             </div>
 
@@ -192,16 +308,17 @@ export const CreatePoll = ({ navigate }) => {
               {options.map((opt, idx) => (
                 <div key={idx} style={{ display: "flex", gap: "8px", alignItems: "center" }}>
                   <span style={{
-                    width: "28px",
-                    height: "28px",
-                    borderRadius: "6px",
-                    background: "rgba(248, 250, 252, 0.95)",
+                    width: "32px",
+                    height: "32px",
+                    borderRadius: "8px",
+                    background: "rgba(59, 130, 246, 0.15)",
+                    border: "1px solid rgba(59, 130, 246, 0.3)",
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
-                    fontSize: "0.8rem",
-                    fontWeight: 600,
-                    color: "var(--text-muted)",
+                    fontSize: "0.85rem",
+                    fontWeight: 700,
+                    color: "#3b82f6",
                     flexShrink: 0,
                   }}>
                     {String.fromCharCode(65 + idx)}
@@ -209,7 +326,7 @@ export const CreatePoll = ({ navigate }) => {
                   <input
                     type="text"
                     required
-                    placeholder={`Option ${idx + 1}`}
+                    placeholder={`Enter choice ${idx + 1}...`}
                     value={opt}
                     onChange={(e) => handleOptionChange(idx, e.target.value)}
                     className="form-input"
@@ -219,11 +336,12 @@ export const CreatePoll = ({ navigate }) => {
                       type="button"
                       onClick={() => removeOption(idx)}
                       style={{
-                        padding: "8px",
-                        background: "rgba(185, 28, 28, 0.06)",
-                        border: "none",
+                        padding: "8px 10px",
+                        background: "rgba(185, 28, 28, 0.1)",
+                        border: "1px solid rgba(185, 28, 28, 0.25)",
                         borderRadius: "var(--radius-sm)",
-                        color: "#b91c1c",
+                        color: "#ef4444",
+                        cursor: "pointer"
                       }}
                       title="Remove option"
                     >
@@ -253,7 +371,7 @@ export const CreatePoll = ({ navigate }) => {
             className="btn-primary"
             style={{ width: "100%", justifyContent: "center", padding: "14px", fontSize: "1rem" }}
           >
-            {loading ? "Publishing Poll..." : "Publish Live Poll"}
+            {loading ? "Publishing Realtime Poll..." : "Publish Live Poll & Launch Countdown"}
             <ArrowRight size={18} />
           </button>
         </form>

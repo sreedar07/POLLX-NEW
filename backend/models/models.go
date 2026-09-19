@@ -39,6 +39,9 @@ type Poll struct {
 	IsActive    bool               `bson:"is_active" json:"is_active"`
 	IsBlind     bool               `bson:"is_blind" json:"is_blind"` // Hide tallies until vote is cast
 	TotalVotes  int64              `bson:"total_votes" json:"total_votes"`
+	StartTime   *time.Time         `bson:"start_time,omitempty" json:"start_time,omitempty"`
+	EndTime     *time.Time         `bson:"end_time,omitempty" json:"end_time,omitempty"`
+	DurationMin int                `bson:"duration_min,omitempty" json:"duration_min,omitempty"`
 	CreatedAt   time.Time          `bson:"created_at" json:"created_at"`
 }
 
@@ -103,11 +106,14 @@ type AuthResponse struct {
 }
 
 type CreatePollRequest struct {
-	Title       string   `json:"title" binding:"required,min=3,max=200"`
-	Description string   `json:"description" binding:"max=500"`
-	Category    string   `json:"category"`
-	IsBlind     bool     `json:"is_blind"`
-	Options     []string `json:"options" binding:"required,min=2,max=10,dive,min=1,max=100"`
+	Title           string   `json:"title" binding:"required,min=3,max=200"`
+	Description     string   `json:"description" binding:"max=500"`
+	Category        string   `json:"category"`
+	IsBlind         bool     `json:"is_blind"`
+	Options         []string `json:"options" binding:"required,min=2,max=10,dive,min=1,max=100"`
+	DurationMinutes int      `json:"duration_minutes"`
+	StartTime       string   `json:"start_time,omitempty"`
+	EndTime         string   `json:"end_time,omitempty"`
 }
 
 type VoteRequest struct {
@@ -129,6 +135,8 @@ type LivePollUpdate struct {
 	TotalVotes      int64            `json:"total_votes"`
 	OptionVotes     map[string]int64 `json:"option_votes"`
 	LastVotedOption string           `json:"last_voted_option,omitempty"`
+	ActiveViewers   int              `json:"active_viewers,omitempty"`
+	RecentVote      *VoteRecord      `json:"recent_vote,omitempty"`
 	Timestamp       int64            `json:"timestamp"`
 }
 

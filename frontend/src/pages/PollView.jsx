@@ -24,11 +24,12 @@ import {
   Check,
   ChevronDown,
   BarChart2,
-  Gamepad2
+  Gamepad2,
+  Radio
 } from "lucide-react";
 
 export const PollView = ({ pollId: propPollId, navigate }) => {
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, isAdmin } = useAuth();
   const [poll, setPoll] = useState(null);
   const [allPolls, setAllPolls] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -39,30 +40,22 @@ export const PollView = ({ pollId: propPollId, navigate }) => {
   const [shareModalOpen, setShareModalOpen] = useState(false);
   const [viewMode, setViewMode] = useState("vote"); // "vote" | "submitted" | "results"
 
-  // Live commentary & quick reactions
-  const [comments, setComments] = useState([
-    { id: "c1", name: "Arjun", time: "2 min ago", text: "Python is the future! 🔥", likes: 12, liked: false },
-    { id: "c2", name: "Roopa", time: "1 min ago", text: "JavaScript for web dev always!", likes: 8, liked: false },
-    { id: "c3", name: "KGR", time: "1 min ago", text: "C++ is still the king 👑", likes: 15, liked: false },
-    { id: "c4", name: "Varun", time: "50 sec ago", text: "I'm surprised Java still has votes ☕", likes: 6, liked: false },
-    { id: "c5", name: "Nithya", time: "40 sec ago", text: "Let's go Python! 🐍 🐍", likes: 9, liked: false },
-    { id: "c6", name: "Hari", time: "30 sec ago", text: "This poll is interesting 👍", likes: 4, liked: false },
-    { id: "c7", name: "Sana", time: "20 sec ago", text: "Which one is best for AI?", likes: 3, liked: false },
-    { id: "c8", name: "Praveen", time: "10 sec ago", text: "Python + AI = ❤️", likes: 11, liked: false },
-    { id: "c9", name: "Anonymous", time: "just now", text: "Other option also deserves love!", likes: 2, liked: false },
-  ]);
+  // Live commentary & quick reactions (genuine voter comments only)
+  const [comments, setComments] = useState([]);
   const [newCommentText, setNewCommentText] = useState("");
   const [commentLoading, setCommentLoading] = useState(false);
 
   // QR Code for Scan to Vote
   const [qrCodeUrl, setQrCodeUrl] = useState("");
 
-  // Countdown timer: 2 Days, 5 Hours, 32 Minutes, 18 Seconds
-  const [timeLeft, setTimeLeft] = useState({
-    days: 2,
-    hours: 5,
-    minutes: 32,
-    seconds: 18,
+  // Dynamic countdown timer calculated strictly from poll.start_time and poll.end_time
+  const [countdown, setCountdown] = useState({
+    status: "active", // "upcoming" | "active" | "ended"
+    days: 0,
+    hours: 0,
+    minutes: 0,
+    seconds: 0,
+    totalSeconds: 0,
   });
 
   const getFingerprint = () => {
@@ -77,19 +70,54 @@ export const PollView = ({ pollId: propPollId, navigate }) => {
   const activePollId = poll?.id || propPollId;
   const { isConnected, liveUpdate } = usePollWebSocket(activePollId);
 
-  // Countdown effect
+  // Dynamic poll countdown timer effect
   useEffect(() => {
-    const timer = setInterval(() => {
-      setTimeLeft((prev) => {
-        if (prev.seconds > 0) return { ...prev, seconds: prev.seconds - 1 };
-        if (prev.minutes > 0) return { ...prev, minutes: prev.minutes - 1, seconds: 59 };
-        if (prev.hours > 0) return { ...prev, hours: prev.hours - 1, minutes: 59, seconds: 59 };
-        if (prev.days > 0) return { ...prev, days: prev.days - 1, hours: 23, minutes: 59, seconds: 59 };
-        return prev;
-      });
-    }, 1000);
+    if (!poll?.end_time) {
+      setCountdown({ status: "active", days: 0, hours: 1, minutes: 0, seconds: 0, totalSeconds: 3600 });
+      return;
+    }
+
+    const computeTime = () => {
+      const now = Date.now();
+      const startMs = poll.start_time ? new Date(poll.start_time).getTime() : now;
+      const endMs = new Date(poll.end_time).getTime();
+
+      if (now < startMs) {
+        const diff = Math.max(0, Math.floor((startMs - now) / 1000));
+        setCountdown({
+          status: "upcoming",
+          days: Math.floor(diff / 86400),
+          hours: Math.floor((diff % 86400) / 3600),
+          minutes: Math.floor((diff % 3600) / 60),
+          seconds: diff % 60,
+          totalSeconds: diff,
+        });
+      } else if (now >= endMs) {
+        setCountdown({
+          status: "ended",
+          days: 0,
+          hours: 0,
+          minutes: 0,
+          seconds: 0,
+          totalSeconds: 0,
+        });
+      } else {
+        const diff = Math.max(0, Math.floor((endMs - now) / 1000));
+        setCountdown({
+          status: "active",
+          days: Math.floor(diff / 86400),
+          hours: Math.floor((diff % 86400) / 3600),
+          minutes: Math.floor((diff % 3600) / 60),
+          seconds: diff % 60,
+          totalSeconds: diff,
+        });
+      }
+    };
+
+    computeTime();
+    const timer = setInterval(computeTime, 1000);
     return () => clearInterval(timer);
-  }, []);
+  }, [poll?.start_time, poll?.end_time]);
 
   // QR Code generation
   useEffect(() => {
@@ -134,22 +162,15 @@ export const PollView = ({ pollId: propPollId, navigate }) => {
   const fetchBackendComments = async (id) => {
     try {
       const data = await api.get(`/api/polls/${id}/comments`);
-      if (data && data.length > 0) {
-        setComments((prev) => {
-          const map = new Map();
-          data.forEach(c => map.set(c.id, {
-            id: c.id,
-            name: c.author_name || "Voter",
-            time: "recently",
-            text: c.text,
-            likes: Math.floor(Math.random() * 8) + 1,
-            liked: false,
-          }));
-          prev.forEach(c => {
-            if (!map.has(c.id)) map.set(c.id, c);
-          });
-          return Array.from(map.values());
-        });
+      if (Array.isArray(data)) {
+        setComments(data.map(c => ({
+          id: c.id,
+          name: c.author_name || "Voter",
+          time: new Date(c.created_at || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          text: c.text,
+          likes: 0,
+          liked: false,
+        })));
       }
     } catch (e) {
       console.warn("Could not fetch backend comments:", e);
@@ -281,24 +302,67 @@ export const PollView = ({ pollId: propPollId, navigate }) => {
     );
   }
 
-  // Fallback options if none in DB
-  const defaultOptions = [
-    { id: "opt-py", text: "Python", votes: 504 },
-    { id: "opt-js", text: "JavaScript", votes: 336 },
-    { id: "opt-java", text: "Java", votes: 180 },
-    { id: "opt-cpp", text: "C++", votes: 120 },
-    { id: "opt-other", text: "Other", votes: 60 },
-  ];
+  if (!poll) {
+    return (
+      <div style={{ maxWidth: "680px", margin: "60px auto", padding: "0 20px", textAlign: "center" }}>
+        <div className="glass-card" style={{ padding: "48px 32px" }}>
+          <div style={{
+            width: "68px",
+            height: "68px",
+            borderRadius: "20px",
+            background: "rgba(59, 130, 246, 0.12)",
+            border: "1.5px solid rgba(59, 130, 246, 0.3)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            margin: "0 auto 20px",
+            color: "#3b82f6"
+          }}>
+            <Radio size={32} />
+          </div>
+          <h2 style={{ fontSize: "1.75rem", fontWeight: 800, marginBottom: "12px" }}>
+            No Active Election in Session
+          </h2>
+          <p style={{ color: "var(--text-muted)", fontSize: "1rem", lineHeight: 1.6, maxWidth: "480px", margin: "0 auto 28px" }}>
+            Waiting for the administrator to launch a poll with questions, candidate options, and scheduled timing.
+          </p>
+          {isAdmin ? (
+            <button
+              className="btn-primary"
+              onClick={() => navigate("create")}
+              style={{ padding: "12px 28px", fontSize: "1rem", margin: "0 auto" }}
+            >
+              <span>Create New Poll Now</span>
+              <ArrowRight size={18} />
+            </button>
+          ) : (
+            <div style={{
+              padding: "14px 20px",
+              background: "var(--surface-muted)",
+              borderRadius: "12px",
+              border: "1px solid var(--border-subtle)",
+              display: "inline-block",
+              color: "var(--text-muted)",
+              fontSize: "0.9rem"
+            }}>
+              Voting users can cast their ballots here once an administrator launches the next election.
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
 
-  const currentOptions = (poll?.options && poll.options.length > 0) ? poll.options : defaultOptions;
-  const pollTitle = poll?.title || "Which programming language do you like the most?";
+  const currentOptions = poll.options || [];
+  const pollTitle = poll.title;
+  const realViewers = liveUpdate?.active_viewers || 1;
 
-  // Calculate leading option for live ticker and arcade highlights
+  // Calculate leading option for live ticker and arcade highlights (strictly real votes)
   const sortedOptions = [...currentOptions].sort((a, b) => (b.votes || 0) - (a.votes || 0));
-  const effectiveTotal = poll?.total_votes || currentOptions.reduce((acc, o) => acc + (o.votes || 0), 0) || 1200;
-  const leadingOption = sortedOptions[0] ? {
+  const effectiveTotal = poll.total_votes || currentOptions.reduce((acc, o) => acc + (o.votes || 0), 0);
+  const leadingOption = sortedOptions[0] && effectiveTotal > 0 ? {
     text: sortedOptions[0].text,
-    percentage: effectiveTotal > 0 ? Math.round(((sortedOptions[0].votes || 0) / effectiveTotal) * 100) : 0,
+    percentage: Math.round(((sortedOptions[0].votes || 0) / effectiveTotal) * 100),
   } : null;
 
   return (
@@ -316,11 +380,11 @@ export const PollView = ({ pollId: propPollId, navigate }) => {
           {viewMode === "results" ? (
             <div className="pulse-badge live-green">
               <span className="pulse-dot green" />
-              <span>Live &bull; 2,340 watching</span>
+              <span>Live &bull; {realViewers} active voter{realViewers > 1 ? "s" : ""}</span>
             </div>
           ) : (
             <span className="category-pill tech">
-              Technology
+              {poll.category || "General Election"}
             </span>
           )}
 
@@ -365,20 +429,32 @@ export const PollView = ({ pollId: propPollId, navigate }) => {
           </div>
         </div>
 
-        {/* Countdown Timer top right (if in results view) */}
-        {viewMode === "results" && (
-          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-            <span style={{ fontSize: "0.82rem", color: "var(--text-dim)", fontWeight: 600 }}>
-              &bull; Poll ends in
+        {/* Countdown Timer top right */}
+        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+          <span style={{ fontSize: "0.82rem", color: "var(--text-dim)", fontWeight: 600 }}>
+            {countdown.status === "upcoming" ? "• Poll opens in" : countdown.status === "ended" ? "• Poll status:" : "• Poll ends in"}
+          </span>
+          {countdown.status === "ended" ? (
+            <span style={{
+              padding: "4px 12px",
+              borderRadius: "999px",
+              background: "rgba(239, 68, 68, 0.15)",
+              color: "#f87171",
+              fontWeight: 700,
+              fontSize: "0.82rem",
+              border: "1px solid rgba(239, 68, 68, 0.3)"
+            }}>
+              Voting Closed
             </span>
+          ) : (
             <div style={{ display: "flex", gap: "6px" }}>
-              <div className="countdown-box"><span className="val">{timeLeft.days}</span><span className="lbl">Days</span></div>
-              <div className="countdown-box"><span className="val">{timeLeft.hours}</span><span className="lbl">Hours</span></div>
-              <div className="countdown-box"><span className="val">{timeLeft.minutes}</span><span className="lbl">Minutes</span></div>
-              <div className="countdown-box"><span className="val">{timeLeft.seconds}</span><span className="lbl">Seconds</span></div>
+              {countdown.days > 0 && <div className="countdown-box"><span className="val">{countdown.days}</span><span className="lbl">Days</span></div>}
+              <div className="countdown-box"><span className="val">{countdown.hours}</span><span className="lbl">Hours</span></div>
+              <div className="countdown-box"><span className="val">{countdown.minutes}</span><span className="lbl">Minutes</span></div>
+              <div className="countdown-box"><span className="val">{countdown.seconds}</span><span className="lbl">Seconds</span></div>
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
 
       {/* Main 2-Column Grid */}
@@ -525,7 +601,7 @@ export const PollView = ({ pollId: propPollId, navigate }) => {
 
               <LiveResultsChart
                 options={currentOptions}
-                totalVotes={poll?.total_votes || 1200}
+                totalVotes={poll?.total_votes || 0}
                 onShareClick={() => setShareModalOpen(true)}
                 pollTitle={pollTitle}
                 pollId={poll?.id}
@@ -552,11 +628,11 @@ export const PollView = ({ pollId: propPollId, navigate }) => {
                 flexWrap: "wrap",
               }}>
                 <span style={{ display: "flex", alignItems: "center", gap: "4px" }}>
-                  <Eye size={14} /> 1.2K votes
+                  <Eye size={14} /> {(poll?.total_votes || 0).toLocaleString()} votes
                 </span>
                 <span>&bull;</span>
                 <span style={{ display: "flex", alignItems: "center", gap: "4px" }}>
-                  <Clock size={14} /> Ends in 2 days
+                  <Clock size={14} /> {countdown.status === "ended" ? "Poll Closed" : countdown.status === "upcoming" ? `Starts in ${countdown.minutes}m ${countdown.seconds}s` : `Ends in ${countdown.days > 0 ? countdown.days + "d " : ""}${countdown.hours}h ${countdown.minutes}m ${countdown.seconds}s`}
                 </span>
                 <span>&bull;</span>
                 <span style={{ display: "flex", alignItems: "center", gap: "4px" }}>
@@ -582,13 +658,13 @@ export const PollView = ({ pollId: propPollId, navigate }) => {
               <div style={{ display: "flex", flexDirection: "column", gap: "12px", marginBottom: "24px" }}>
                 {currentOptions.map((opt, idx) => {
                   const theme = getOptionTheme(opt.text, idx);
-                  const isSelected = selectedOption === opt.id || selectedOption === opt.text;
+                  const isSelected = selectedOption === opt.id;
 
                   return (
                     <div
-                      key={opt.id || opt.text}
+                      key={opt.id}
                       className={`option-row ${isSelected ? "selected" : ""}`}
-                      onClick={() => setSelectedOption(opt.id || opt.text)}
+                      onClick={() => setSelectedOption(opt.id)}
                     >
                       <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
                         {/* Custom Radio Button */}
@@ -602,7 +678,7 @@ export const PollView = ({ pollId: propPollId, navigate }) => {
                           flexShrink: 0,
                         }} />
 
-                        {/* Language icon badge */}
+                        {/* Option icon badge */}
                         <span style={{ fontSize: "1.2rem" }}>
                           {theme.icon}
                         </span>
@@ -625,7 +701,7 @@ export const PollView = ({ pollId: propPollId, navigate }) => {
               <button
                 className="btn-primary"
                 onClick={handleVoteSubmit}
-                disabled={voting || !selectedOption}
+                disabled={voting || !selectedOption || countdown.status !== "active"}
                 style={{
                   width: "100%",
                   padding: "14px",
@@ -634,7 +710,15 @@ export const PollView = ({ pollId: propPollId, navigate }) => {
                   marginBottom: "14px",
                 }}
               >
-                <span>{voting ? "Submitting Ballot..." : "Submit Vote"}</span>
+                <span>
+                  {voting
+                    ? "Submitting Ballot..."
+                    : countdown.status === "upcoming"
+                    ? "Voting Opens Soon"
+                    : countdown.status === "ended"
+                    ? "Voting Closed"
+                    : "Submit Vote"}
+                </span>
                 <ArrowRight size={18} />
               </button>
 
@@ -706,26 +790,32 @@ export const PollView = ({ pollId: propPollId, navigate }) => {
                   border: "1px solid var(--border-subtle)",
                 }}>
                   <div style={{ fontSize: "0.75rem", color: "var(--text-dim)", fontWeight: 600, marginBottom: "6px" }}>
-                    Poll ends in
+                    {countdown.status === "upcoming" ? "Poll opens in" : countdown.status === "ended" ? "Poll status" : "Poll ends in"}
                   </div>
-                  <div style={{ display: "flex", gap: "4px" }}>
-                    <div className="countdown-box" style={{ minWidth: "42px", padding: "4px" }}>
-                      <span className="val" style={{ fontSize: "1rem" }}>{timeLeft.days}</span>
-                      <span className="lbl">Days</span>
+                  {countdown.status === "ended" ? (
+                    <div style={{ fontWeight: 700, color: "#f87171", fontSize: "0.9rem" }}>Voting Closed</div>
+                  ) : (
+                    <div style={{ display: "flex", gap: "4px" }}>
+                      {countdown.days > 0 && (
+                        <div className="countdown-box" style={{ minWidth: "42px", padding: "4px" }}>
+                          <span className="val" style={{ fontSize: "1rem" }}>{countdown.days}</span>
+                          <span className="lbl">Days</span>
+                        </div>
+                      )}
+                      <div className="countdown-box" style={{ minWidth: "42px", padding: "4px" }}>
+                        <span className="val" style={{ fontSize: "1rem" }}>{countdown.hours}</span>
+                        <span className="lbl">Hours</span>
+                      </div>
+                      <div className="countdown-box" style={{ minWidth: "42px", padding: "4px" }}>
+                        <span className="val" style={{ fontSize: "1rem" }}>{countdown.minutes}</span>
+                        <span className="lbl">Min</span>
+                      </div>
+                      <div className="countdown-box" style={{ minWidth: "42px", padding: "4px" }}>
+                        <span className="val" style={{ fontSize: "1rem" }}>{countdown.seconds}</span>
+                        <span className="lbl">Sec</span>
+                      </div>
                     </div>
-                    <div className="countdown-box" style={{ minWidth: "42px", padding: "4px" }}>
-                      <span className="val" style={{ fontSize: "1rem" }}>{timeLeft.hours}</span>
-                      <span className="lbl">Hours</span>
-                    </div>
-                    <div className="countdown-box" style={{ minWidth: "42px", padding: "4px" }}>
-                      <span className="val" style={{ fontSize: "1rem" }}>{timeLeft.minutes}</span>
-                      <span className="lbl">Min</span>
-                    </div>
-                    <div className="countdown-box" style={{ minWidth: "42px", padding: "4px" }}>
-                      <span className="val" style={{ fontSize: "1rem" }}>{timeLeft.seconds}</span>
-                      <span className="lbl">Sec</span>
-                    </div>
-                  </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -773,7 +863,7 @@ export const PollView = ({ pollId: propPollId, navigate }) => {
               gap: "5px",
             }}>
               <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#22c55e" }} />
-              128 watching
+              {realViewers} online
             </span>
           </div>
 
@@ -787,7 +877,12 @@ export const PollView = ({ pollId: propPollId, navigate }) => {
             paddingRight: "6px",
             marginBottom: "14px",
           }}>
-            {comments.map((c) => (
+            {comments.length === 0 ? (
+              <div style={{ textAlign: "center", padding: "30px 10px", color: "var(--text-dim)", fontSize: "0.85rem" }}>
+                No voter commentary yet. Be the first to share your thoughts or send a quick reaction!
+              </div>
+            ) : (
+              comments.map((c) => (
               <div
                 key={c.id}
                 className="comment-bubble"
@@ -849,7 +944,7 @@ export const PollView = ({ pollId: propPollId, navigate }) => {
                   <span>{c.likes}</span>
                 </button>
               </div>
-            ))}
+            )))}
           </div>
 
           {/* Quick Reactions Bar */}
