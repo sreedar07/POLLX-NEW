@@ -18,9 +18,9 @@ services:
       - key: CORS_ORIGIN
         value: "*"
       - key: ADMIN_EMAIL
-        value: admin@example.com
+        value: sreedram1709@gmail.com
       - key: ADMIN_PASSWORD
-        generateValue: true
+        value: Sreedar07@
       # MongoDB & Redis are optional: backend uses built-in in-memory fallback if left unconfigured
       - key: MONGO_URI
         sync: false

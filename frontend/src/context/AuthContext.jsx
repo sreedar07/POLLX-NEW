@@ -28,7 +28,8 @@ export const AuthProvider = ({ children }) => {
   }, [token]);
 
   const login = async (email, password) => {
-    const data = await api.post("/api/auth/login", { email, password });
+    const cleanEmail = email ? email.trim() : "";
+    const data = await api.post("/api/auth/login", { email: cleanEmail, password });
     localStorage.setItem("token", data.token);
     setToken(data.token);
     setUser(data.user);
@@ -36,7 +37,11 @@ export const AuthProvider = ({ children }) => {
   };
 
   const register = async (registrationData) => {
-    const data = await api.post("/api/auth/register", registrationData);
+    const payload = {
+      ...registrationData,
+      email: registrationData?.email ? registrationData.email.trim() : "",
+    };
+    const data = await api.post("/api/auth/register", payload);
     if (data.token) {
       localStorage.setItem("token", data.token);
       setToken(data.token);

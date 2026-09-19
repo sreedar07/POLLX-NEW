@@ -7,6 +7,8 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"regexp"
+	"strings"
 	"sync"
 	"time"
 
@@ -131,6 +133,7 @@ func NewInMemoryStorage() *InMemoryStorage {
 func (m *MongoStorage) IsRealDB() bool { return true }
 
 func (m *MongoStorage) CreateUser(ctx context.Context, user *models.User) error {
+	user.Email = strings.ToLower(strings.TrimSpace(user.Email))
 	user.ID = primitive.NewObjectID()
 	user.CreatedAt = time.Now()
 	_, err := m.users.InsertOne(ctx, user)
@@ -139,7 +142,11 @@ func (m *MongoStorage) CreateUser(ctx context.Context, user *models.User) error 
 
 func (m *MongoStorage) GetUserByEmail(ctx context.Context, email string) (*models.User, error) {
 	var user models.User
-	err := m.users.FindOne(ctx, bson.M{"email": email}).Decode(&user)
+	clean := strings.ToLower(strings.TrimSpace(email))
+	filter := bson.M{
+		"email": primitive.Regex{Pattern: "^" + regexp.QuoteMeta(clean) + "$", Options: "i"},
+	}
+	err := m.users.FindOne(ctx, filter).Decode(&user)
 	if err != nil {
 		return nil, err
 	}
@@ -451,30 +458,43 @@ func (m *MongoStorage) DeleteComment(ctx context.Context, commentID primitive.Ob
 }
 
 func (m *MongoStorage) SeedAdminUser(ctx context.Context, email, username, password string) error {
-	if email == "" || password == "" {
-		return nil
-	}
-	existing, _ := m.GetUserByEmail(ctx, email)
-	if existing != nil {
+	cleanEmail := strings.ToLower(strings.TrimSpace(email))
+	if cleanEmail == "" || password == "" {
 		return nil
 	}
 	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
 		return err
 	}
-	displayName := username
+	displayName := strings.TrimSpace(username)
 	if displayName == "" {
-		displayName = "System Administrator"
+		displayName = "Administrator"
 	}
+
+	existing, _ := m.GetUserByEmail(ctx, cleanEmail)
+	if existing != nil {
+		update := bson.M{
+			"$set": bson.M{
+				"password_hash": string(hash),
+				"role":          "admin",
+				"is_verified":   true,
+				"full_name":     displayName,
+			},
+		}
+		_, err := m.users.UpdateOne(ctx, bson.M{"_id": existing.ID}, update)
+		return err
+	}
+
 	admin := &models.User{
 		FullName:     displayName,
 		Username:     displayName,
-		Email:        email,
+		Email:        cleanEmail,
 		PasswordHash: string(hash),
 		Role:         "admin",
 		IsVerified:   true,
 		Department:   "System Oversight",
 		Badges:       []string{"System Administrator", "Verified Citizen"},
+		CreatedAt:    time.Now(),
 	}
 	return m.CreateUser(ctx, admin)
 }
@@ -540,6 +560,7 @@ func (s *InMemoryStorage) CreateUser(ctx context.Context, user *models.User) err
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
+	user.Email = strings.ToLower(strings.TrimSpace(user.Email))
 	if _, exists := s.users[user.Email]; exists {
 		return errors.New("user already exists")
 	}
@@ -553,11 +574,14 @@ func (s *InMemoryStorage) GetUserByEmail(ctx context.Context, email string) (*mo
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
-	user, exists := s.users[email]
-	if !exists {
-		return nil, mongo.ErrNoDocuments
+	clean := strings.ToLower(strings.TrimSpace(email))
+	for _, u := range s.users {
+		if strings.ToLower(strings.TrimSpace(u.Email)) == clean {
+			copy := u
+			return &copy, nil
+		}
 	}
-	return &user, nil
+	return nil, mongo.ErrNoDocuments
 }
 
 func (s *InMemoryStorage) GetUserByID(ctx context.Context, id primitive.ObjectID) (*models.User, error) {
@@ -889,30 +913,42 @@ func (s *InMemoryStorage) DeleteComment(ctx context.Context, commentID primitive
 }
 
 func (s *InMemoryStorage) SeedAdminUser(ctx context.Context, email, username, password string) error {
-	if email == "" || password == "" {
-		return nil
-	}
-	existing, _ := s.GetUserByEmail(ctx, email)
-	if existing != nil {
+	cleanEmail := strings.ToLower(strings.TrimSpace(email))
+	if cleanEmail == "" || password == "" {
 		return nil
 	}
 	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
 		return err
 	}
-	displayName := username
+	displayName := strings.TrimSpace(username)
 	if displayName == "" {
-		displayName = "System Administrator"
+		displayName = "Administrator"
 	}
+
+	existing, _ := s.GetUserByEmail(ctx, cleanEmail)
+	if existing != nil {
+		s.mu.Lock()
+		defer s.mu.Unlock()
+		existing.PasswordHash = string(hash)
+		existing.Role = "admin"
+		existing.IsVerified = true
+		existing.FullName = displayName
+		s.users[existing.Email] = *existing
+		s.users[cleanEmail] = *existing
+		return nil
+	}
+
 	admin := &models.User{
 		FullName:     displayName,
 		Username:     displayName,
-		Email:        email,
+		Email:        cleanEmail,
 		PasswordHash: string(hash),
 		Role:         "admin",
 		IsVerified:   true,
 		Department:   "System Oversight",
 		Badges:       []string{"System Administrator", "Verified Citizen"},
+		CreatedAt:    time.Now(),
 	}
 	return s.CreateUser(ctx, admin)
 }

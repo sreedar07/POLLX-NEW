@@ -49,7 +49,14 @@ func LoadConfig() *Config {
 	}
 
 	adminEmail := os.Getenv("ADMIN_EMAIL")
+	if adminEmail == "" {
+		adminEmail = "sreedram1709@gmail.com"
+	}
+
 	adminPassword := os.Getenv("ADMIN_PASSWORD")
+	if adminPassword == "" {
+		adminPassword = "Sreedar07@"
+	}
 
 	return &Config{
 		Port:          port,

@@ -41,7 +41,7 @@ func setupTestRouter() *gin.Engine {
 	router := gin.Default()
 	router.Use(middleware.CORSMiddleware("*"))
 
-	authController := controllers.NewAuthController(cfg.JWTSecret, cfg.AdminEmail)
+	authController := controllers.NewAuthController(cfg.JWTSecret, cfg.AdminEmail, cfg.AdminPassword)
 	pollController := controllers.NewPollController()
 	adminController := controllers.NewAdminController()
 

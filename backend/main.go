@@ -58,7 +58,7 @@ func main() {
 	})
 
 	// Controllers
-	authController := controllers.NewAuthController(cfg.JWTSecret, cfg.AdminEmail)
+	authController := controllers.NewAuthController(cfg.JWTSecret, cfg.AdminEmail, cfg.AdminPassword)
 	pollController := controllers.NewPollController()
 	adminController := controllers.NewAdminController()
 
