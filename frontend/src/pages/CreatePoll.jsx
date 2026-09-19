@@ -1,13 +1,66 @@
 import React, { useState } from "react";
 import { api } from "../api/client";
-import { Plus, Trash2, HelpCircle, ArrowRight, AlertCircle, CheckCircle2 } from "lucide-react";
+import { useAuth } from "../context/AuthContext";
+import { Plus, Trash2, HelpCircle, ArrowRight, AlertCircle, CheckCircle2, Lock, LogIn } from "lucide-react";
 
 export const CreatePoll = ({ navigate }) => {
+  const { isAuthenticated, isAdmin } = useAuth();
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [options, setOptions] = useState(["", ""]);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  // Strict Administrator Access Control
+  if (!isAdmin) {
+    return (
+      <div style={{ maxWidth: "560px", margin: "60px auto", padding: "40px 24px", textAlign: "center" }}>
+        <div className="glass-card" style={{ padding: "40px 28px", border: "1.5px solid rgba(239, 68, 68, 0.35)" }}>
+          <div style={{
+            width: "68px",
+            height: "68px",
+            borderRadius: "22px",
+            background: "rgba(239, 68, 68, 0.15)",
+            border: "1.5px solid rgba(239, 68, 68, 0.4)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            margin: "0 auto 20px",
+            color: "#f87171",
+          }}>
+            <Lock size={34} />
+          </div>
+
+          <h2 style={{ fontSize: "1.7rem", fontWeight: 800, marginBottom: "12px", color: "#ffffff" }}>
+            Administrator Access Only
+          </h2>
+
+          <p style={{ color: "var(--text-muted)", fontSize: "1rem", lineHeight: 1.6, marginBottom: "28px" }}>
+            Only verified administrators have permission to create and manage polls. Voting users can explore active polls, cast their votes, and view live percentage results.
+          </p>
+
+          <div style={{ display: "flex", flexDirection: "column", gap: "12px", maxWidth: "320px", margin: "0 auto" }}>
+            <button
+              className="btn-primary"
+              onClick={() => navigate("login")}
+              style={{ width: "100%", padding: "12px", fontSize: "0.98rem" }}
+            >
+              <LogIn size={18} />
+              <span>Log in as Administrator</span>
+            </button>
+
+            <button
+              className="btn-secondary"
+              onClick={() => navigate("poll")}
+              style={{ width: "100%", padding: "12px", fontSize: "0.95rem" }}
+            >
+              <span>Go to Active Poll (Vote)</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const handleOptionChange = (index, value) => {
     const updated = [...options];

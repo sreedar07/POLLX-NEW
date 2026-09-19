@@ -10,7 +10,8 @@ import {
   UserCheck, 
   LayoutDashboard,
   Award,
-  Sparkles
+  Sparkles,
+  User
 } from "lucide-react";
 
 export const Navbar = ({ currentRoute, navigate, onShareClick }) => {
@@ -226,9 +227,19 @@ export const Navbar = ({ currentRoute, navigate, onShareClick }) => {
           <button 
             className="btn-primary"
             onClick={() => navigate("login")}
-            style={{ padding: "8px 20px", fontSize: "0.9rem" }}
+            style={{ 
+              padding: "8px 22px", 
+              fontSize: "0.92rem",
+              borderRadius: "999px",
+              background: "linear-gradient(135deg, #2563eb 0%, #3b82f6 100%)",
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+              boxShadow: "0 4px 18px rgba(37, 99, 235, 0.4)",
+              fontWeight: 700,
+            }}
           >
-            <LogIn size={15} />
+            <User size={16} />
             <span>Login</span>
           </button>
         )}

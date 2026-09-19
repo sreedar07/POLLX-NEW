@@ -281,17 +281,22 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 /* Floating 3D Ballot Box Animation */
 @keyframes floatSlow {
   0%, 100% { transform: translateY(0px) rotate(0deg); }
-  50% { transform: translateY(-12px) rotate(1.5deg); }
+  50% { transform: translateY(-10px) rotate(1.2deg); }
 }
 
 @keyframes floatReverse {
   0%, 100% { transform: translateY(0px) rotate(0deg); }
-  50% { transform: translateY(10px) rotate(-2deg); }
+  50% { transform: translateY(8px) rotate(-1.5deg); }
 }
 
 @keyframes glowPulse {
-  0%, 100% { filter: drop-shadow(0 0 20px rgba(99, 102, 241, 0.35)); }
-  50% { filter: drop-shadow(0 0 35px rgba(59, 130, 246, 0.6)); }
+  0%, 100% { filter: drop-shadow(0 0 25px rgba(59, 130, 246, 0.35)); }
+  50% { filter: drop-shadow(0 0 45px rgba(59, 130, 246, 0.65)); }
+}
+
+@keyframes ballotDrop {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(8px); }
 }
 
 .floating-hero-card {
@@ -304,6 +309,79 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 
 .floating-badge-2 {
   animation: floatSlow 5.2s ease-in-out infinite;
+}
+
+/* Gradient headline matching the user reference */
+.text-gradient-shining {
+  background: linear-gradient(135deg, #a78bfa 0%, #38bdf8 55%, #818cf8 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* Reference UI Feature Cards (Bottom 3 cards) */
+.feature-card-pollx {
+  background: linear-gradient(165deg, rgba(20, 30, 55, 0.7) 0%, rgba(10, 16, 32, 0.85) 100%);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 24px;
+  padding: 32px 28px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 220px;
+  transition: all 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.feature-card-pollx:hover {
+  transform: translateY(-4px);
+  border-color: rgba(59, 130, 246, 0.4);
+  box-shadow: 0 16px 40px rgba(7, 11, 25, 0.8), 0 0 25px rgba(59, 130, 246, 0.2);
+}
+
+.arrow-circle-btn {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-main);
+  transition: all 0.2s ease;
+  cursor: pointer;
+  margin-top: 20px;
+}
+
+.feature-card-pollx:hover .arrow-circle-btn {
+  background: rgba(59, 130, 246, 0.3);
+  border-color: #3b82f6;
+  color: #ffffff;
+  transform: translateX(4px);
+}
+
+/* Chill Out Arcade Lounge on Results page */
+.chill-out-lounge {
+  background: linear-gradient(160deg, rgba(15, 23, 42, 0.95) 0%, rgba(8, 12, 28, 0.98) 100%);
+  border: 1.5px solid rgba(99, 102, 241, 0.3);
+  border-radius: 28px;
+  padding: 36px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5), 0 0 35px rgba(99, 102, 241, 0.15);
+  margin-top: 48px;
+}
+
+.arcade-screen-frame {
+  background: #060a14;
+  border: 2px solid rgba(59, 130, 246, 0.4);
+  border-radius: 16px;
+  box-shadow: inset 0 0 30px rgba(0, 0, 0, 0.9), 0 0 20px rgba(59, 130, 246, 0.2);
+  overflow: hidden;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
 /* Forms */

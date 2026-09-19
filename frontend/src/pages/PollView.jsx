@@ -6,6 +6,7 @@ import { useAuth } from "../context/AuthContext";
 import { usePollWebSocket } from "../hooks/usePollWebSocket";
 import { LiveResultsChart, getOptionTheme } from "../components/LiveResultsChart";
 import { ShareModal } from "../components/ShareModal";
+import { ChillOutSnakeLounge } from "../components/ChillOutSnakeLounge";
 import { 
   CheckCircle2, 
   Share2, 
@@ -22,7 +23,8 @@ import {
   QrCode,
   Check,
   ChevronDown,
-  BarChart2
+  BarChart2,
+  Gamepad2
 } from "lucide-react";
 
 export const PollView = ({ pollId: propPollId, navigate }) => {
@@ -200,7 +202,8 @@ export const PollView = ({ pollId: propPollId, navigate }) => {
       });
 
       setHasVoted(true);
-      setViewMode("submitted");
+      // Immediately redirect voting user to the live results and percentage page!
+      setViewMode("results");
       fetchActivePoll(poll.id, true);
     } catch (err) {
       setError(err.message || "Failed to submit ballot");
@@ -289,6 +292,14 @@ export const PollView = ({ pollId: propPollId, navigate }) => {
 
   const currentOptions = (poll?.options && poll.options.length > 0) ? poll.options : defaultOptions;
   const pollTitle = poll?.title || "Which programming language do you like the most?";
+
+  // Calculate leading option for live ticker and arcade highlights
+  const sortedOptions = [...currentOptions].sort((a, b) => (b.votes || 0) - (a.votes || 0));
+  const effectiveTotal = poll?.total_votes || currentOptions.reduce((acc, o) => acc + (o.votes || 0), 0) || 1200;
+  const leadingOption = sortedOptions[0] ? {
+    text: sortedOptions[0].text,
+    percentage: effectiveTotal > 0 ? Math.round(((sortedOptions[0].votes || 0) / effectiveTotal) * 100) : 0,
+  } : null;
 
   return (
     <div style={{ maxWidth: "1280px", margin: "0 auto", padding: "28px 24px" }}>
@@ -448,8 +459,66 @@ export const PollView = ({ pollId: propPollId, navigate }) => {
               </div>
             </div>
           ) : viewMode === "results" ? (
-            /* ===================== VIEW 2: LIVE RESULTS ===================== */
+            /* ===================== VIEW 2: LIVE RESULTS & POLL PERCENTAGES ===================== */
             <div>
+              {hasVoted && (
+                <div style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  flexWrap: "wrap",
+                  gap: "12px",
+                  padding: "12px 18px",
+                  borderRadius: "14px",
+                  background: "rgba(34, 197, 94, 0.12)",
+                  border: "1.5px solid rgba(34, 197, 94, 0.35)",
+                  marginBottom: "20px",
+                }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                    <div style={{
+                      width: "28px",
+                      height: "28px",
+                      borderRadius: "50%",
+                      background: "#22c55e",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      color: "#ffffff"
+                    }}>
+                      <Check size={18} strokeWidth={3} />
+                    </div>
+                    <div>
+                      <div style={{ fontWeight: 700, color: "#4ade80", fontSize: "0.95rem" }}>
+                        Ballot Cast Successfully!
+                      </div>
+                      <div style={{ fontSize: "0.78rem", color: "var(--text-muted)" }}>
+                        Your vote has been counted anonymously into the live percentage results below.
+                      </div>
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={() => document.getElementById("chill-out-section")?.scrollIntoView({ behavior: "smooth" })}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "6px",
+                      padding: "8px 16px",
+                      borderRadius: "999px",
+                      background: "rgba(59, 130, 246, 0.2)",
+                      border: "1px solid rgba(59, 130, 246, 0.45)",
+                      color: "#93c5fd",
+                      fontSize: "0.84rem",
+                      fontWeight: 700,
+                      cursor: "pointer"
+                    }}
+                  >
+                    <Gamepad2 size={16} />
+                    <span>Scroll to Snake Game ↓</span>
+                  </button>
+                </div>
+              )}
+
               <h1 style={{ fontSize: "1.6rem", fontWeight: 800, marginBottom: "8px" }}>
                 {pollTitle}
               </h1>
@@ -854,6 +923,12 @@ export const PollView = ({ pollId: propPollId, navigate }) => {
           </form>
         </div>
       </div>
+
+      {/* ===================== EMBEDDED CHILL OUT ARCADE LOUNGE ===================== */}
+      <ChillOutSnakeLounge 
+        pollTitle={pollTitle} 
+        leadingOption={leadingOption} 
+      />
 
       {/* Share Anywhere Modal */}
       <ShareModal
