@@ -1,0 +1,51 @@
+services:
+  # =====================================================================
+  # 1. POLLX BACKEND (Go Gin Engine + WebSockets)
+  # =====================================================================
+  - type: web
+    name: pollx-backend
+    env: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    plan: free
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: PORT
+        value: 8080
+      - key: JWT_SECRET
+        generateValue: true
+      - key: CORS_ORIGIN
+        value: "*"
+      - key: ADMIN_EMAIL
+        value: admin@example.com
+      - key: ADMIN_PASSWORD
+        generateValue: true
+      # MongoDB & Redis are optional: backend uses built-in in-memory fallback if left unconfigured
+      - key: MONGO_URI
+        sync: false
+      - key: REDIS_URI
+        sync: false
+
+  # =====================================================================
+  # 2. POLLX FRONTEND (React 19 + Vite Static Site)
+  # =====================================================================
+  - type: web
+    name: pollx-frontend
+    runtime: static
+    buildCommand: cd frontend && npm install && npm run build
+    staticPublishPath: ./frontend/dist
+    plan: free
+    autoDeploy: true
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    envVars:
+      # Set these in your Render dashboard after backend is deployed:
+      # VITE_API_URL: https://pollx-backend.onrender.com
+      # VITE_WS_URL: wss://pollx-backend.onrender.com
+      - key: VITE_API_URL
+        sync: false
+      - key: VITE_WS_URL
+        sync: false
