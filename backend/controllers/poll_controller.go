@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
@@ -353,10 +354,8 @@ func (p *PollController) Vote(c *gin.Context) {
 		CreatedAt:       now,
 	}
 
-	go func() {
-		_ = database.DB.UpdatePollVotes(c.Request.Context(), pollID, update.OptionVotes, update.TotalVotes)
-		_ = database.DB.RecordVote(c.Request.Context(), &voteRecord)
-	}()
+	_ = database.DB.UpdatePollVotes(context.Background(), pollID, update.OptionVotes, update.TotalVotes)
+	_ = database.DB.RecordVote(context.Background(), &voteRecord)
 
 	badges := []string{"Active Voter"}
 	if now.Sub(poll.CreatedAt) < 10*time.Minute {

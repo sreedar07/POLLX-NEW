@@ -22,8 +22,8 @@ import (
 
 func setupTestRouter() *gin.Engine {
 	gin.SetMode(gin.TestMode)
-	_ = os.Setenv("ADMIN_EMAIL", "admin@example.com")
-	_ = os.Setenv("ADMIN_PASSWORD", "test-admin-password")
+	_ = os.Setenv("ADMIN_EMAIL", "sreedram1709@gmail.com")
+	_ = os.Setenv("ADMIN_PASSWORD", "Sreedar07@")
 	cfg := config.LoadConfig()
 
 	// Initialize with fallback in-memory test stores
@@ -101,8 +101,8 @@ func TestCompleteVotingSystem(t *testing.T) {
 
 	// 1. Verify Hardcoded Admin Credentials Login
 	loginAdmin := models.LoginRequest{
-		Email:    "admin@example.com",
-		Password: "test-admin-password",
+		Email:    "sreedram1709@gmail.com",
+		Password: "Sreedar07@",
 	}
 	bodyAdmin, _ := json.Marshal(loginAdmin)
 	reqAdmin := httptest.NewRequest("POST", "/api/auth/login", bytes.NewBuffer(bodyAdmin))
@@ -111,7 +111,7 @@ func TestCompleteVotingSystem(t *testing.T) {
 	router.ServeHTTP(wAdmin, reqAdmin)
 
 	if wAdmin.Code != http.StatusOK {
-		t.Fatalf("Expected 200 OK for admin login admin@example.com, got %d: %s", wAdmin.Code, wAdmin.Body.String())
+		t.Fatalf("Expected 200 OK for admin login sreedram1709@gmail.com, got %d: %s", wAdmin.Code, wAdmin.Body.String())
 	}
 	var adminAuthResp models.AuthResponse
 	json.Unmarshal(wAdmin.Body.Bytes(), &adminAuthResp)
@@ -211,7 +211,7 @@ func TestCompleteVotingSystem(t *testing.T) {
 		t.Fatalf("Expected blind mode vote masking (-1) before ballot is cast, got %d", activeResp.Poll.Options[0].Votes)
 	}
 
-	// 7. Test Account-Based Access Control: Anonymous vote MUST be rejected (401 Unauthorized)
+	// 7. Public Participant Voting: Anonymous voter casts ballot with fingerprint
 	votePayload := models.VoteRequest{
 		OptionID:    "opt_1",
 		Fingerprint: "fp_voter_1",
@@ -223,12 +223,18 @@ func TestCompleteVotingSystem(t *testing.T) {
 	wAnonVote := httptest.NewRecorder()
 	router.ServeHTTP(wAnonVote, reqAnonVote)
 
-	if wAnonVote.Code != http.StatusUnauthorized {
-		t.Fatalf("Expected 401 Unauthorized for anonymous vote submission, got %d: %s", wAnonVote.Code, wAnonVote.Body.String())
+	if wAnonVote.Code != http.StatusOK {
+		t.Fatalf("Expected 200 OK for public participant vote submission, got %d: %s", wAnonVote.Code, wAnonVote.Body.String())
 	}
 
 	// 8. Authenticated Voter casts ballot with Demographic Department
-	reqVote := httptest.NewRequest("POST", "/api/polls/"+pollID+"/vote", bytes.NewBuffer(bodyVote))
+	votePayload2 := models.VoteRequest{
+		OptionID:    "opt_2",
+		Fingerprint: "fp_voter_2",
+		Department:  "Engineering",
+	}
+	bodyVote2, _ := json.Marshal(votePayload2)
+	reqVote := httptest.NewRequest("POST", "/api/polls/"+pollID+"/vote", bytes.NewBuffer(bodyVote2))
 	reqVote.Header.Set("Content-Type", "application/json")
 	reqVote.Header.Set("Authorization", "Bearer "+voterAuthResp.Token)
 	wVote := httptest.NewRecorder()
@@ -243,8 +249,8 @@ func TestCompleteVotingSystem(t *testing.T) {
 		t.Fatal("Expected cryptographic receipt hash in vote response")
 	}
 
-	// 8. Duplicate vote prevention
-	reqDup := httptest.NewRequest("POST", "/api/polls/"+pollID+"/vote", bytes.NewBuffer(bodyVote))
+	// 8b. Duplicate vote prevention
+	reqDup := httptest.NewRequest("POST", "/api/polls/"+pollID+"/vote", bytes.NewBuffer(bodyVote2))
 	reqDup.Header.Set("Content-Type", "application/json")
 	reqDup.Header.Set("Authorization", "Bearer "+voterAuthResp.Token)
 	wDup := httptest.NewRecorder()

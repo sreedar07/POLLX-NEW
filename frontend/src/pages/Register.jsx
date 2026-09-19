@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useAuth } from "../context/AuthContext";
-import { UserPlus, AlertCircle, CheckCircle2, ShieldCheck, Mail, ArrowRight, RefreshCw } from "lucide-react";
+import { UserPlus, AlertCircle, CheckCircle2, ShieldCheck, Mail, ArrowRight, RefreshCw, Eye, EyeOff } from "lucide-react";
 
 export const Register = ({ navigate }) => {
   const { register, verifyEmail, resendCode } = useAuth();
@@ -13,6 +13,7 @@ export const Register = ({ navigate }) => {
   const [bio, setBio] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   // Verification step state
   const [step, setStep] = useState("form"); // "form" or "verify"
@@ -175,15 +176,39 @@ export const Register = ({ navigate }) => {
                     </span>
                   )}
                 </div>
-                <input
-                  type="password"
-                  required
-                  autoComplete="new-password"
-                  placeholder="Min 8 chars (mixed case & numbers)"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="form-input"
-                />
+                <div style={{ position: "relative" }}>
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    required
+                    autoComplete="new-password"
+                    placeholder="Min 8 chars (mixed case & numbers)"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="form-input"
+                    style={{ paddingRight: "44px" }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    style={{
+                      position: "absolute",
+                      right: "12px",
+                      top: "50%",
+                      transform: "translateY(-50%)",
+                      background: "transparent",
+                      border: "none",
+                      color: "var(--text-muted)",
+                      cursor: "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      padding: "4px",
+                    }}
+                    title={showPassword ? "Hide password" : "Show password"}
+                  >
+                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
                 
                 {/* Visual Strength Bar */}
                 <div className="strength-bar">
