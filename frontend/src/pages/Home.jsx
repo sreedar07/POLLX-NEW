@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { ShareModal } from "../components/ShareModal";
+import heroBallotImage from "../assets/hero-ballot.png";
 
 export const Home = ({ navigate }) => {
   const { isAuthenticated, isAdmin } = useAuth();
@@ -161,212 +162,52 @@ export const Home = ({ navigate }) => {
           </div>
         </div>
 
-        {/* Right Column: 3D Glowing Glass Ballot Box + Floating Reactions matching image */}
+        {/* Right Column: Ultra-Attractive 3D Glowing Glass Ballot Box */}
         <div style={{
           position: "relative",
           display: "flex",
           justifyContent: "center",
           alignItems: "center",
-          minHeight: "420px",
+          minHeight: "440px",
         }}>
-          {/* Ambient Glow behind box */}
+          {/* Multi-layered Ambient Glows */}
           <div style={{
             position: "absolute",
-            width: "320px",
-            height: "320px",
+            width: "380px",
+            height: "380px",
             borderRadius: "50%",
-            background: "radial-gradient(circle, rgba(56, 189, 248, 0.3) 0%, rgba(99, 102, 241, 0.15) 50%, transparent 70%)",
-            filter: "blur(40px)",
+            background: "radial-gradient(circle, rgba(56, 189, 248, 0.4) 0%, rgba(147, 51, 234, 0.25) 50%, transparent 70%)",
+            filter: "blur(50px)",
             zIndex: 0,
             pointerEvents: "none",
           }} />
 
-          {/* The 3D Glass Ballot Box Container */}
+          {/* 3D Glowing Glass Ballot Box Image Container with Float Animation */}
           <div 
             className="floating-hero-card"
             style={{
               position: "relative",
               zIndex: 1,
-              width: "290px",
-              height: "290px",
-              perspective: "1000px",
-            }}
-          >
-            {/* Box Body */}
-            <div style={{
               width: "100%",
-              height: "100%",
-              borderRadius: "32px",
-              background: "linear-gradient(145deg, rgba(30, 64, 175, 0.5) 0%, rgba(14, 25, 60, 0.85) 60%, rgba(7, 11, 28, 0.95) 100%)",
-              border: "2px solid rgba(56, 189, 248, 0.55)",
-              boxShadow: "0 25px 70px rgba(56, 189, 248, 0.35), inset 0 2px 10px rgba(255, 255, 255, 0.3)",
-              backdropFilter: "blur(20px)",
+              maxWidth: "420px",
               display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
               justifyContent: "center",
-              position: "relative",
-            }}>
-              {/* Top Lid Edge Glow */}
-              <div style={{
-                position: "absolute",
-                top: "14px",
-                width: "82%",
-                height: "22px",
-                borderRadius: "11px",
-                background: "rgba(10, 20, 50, 0.7)",
-                border: "1.5px solid rgba(56, 189, 248, 0.6)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                boxShadow: "inset 0 2px 6px rgba(0,0,0,0.8)",
-              }}>
-                {/* Ballot Slot */}
-                <div style={{
-                  width: "90px",
-                  height: "6px",
-                  borderRadius: "3px",
-                  background: "#030712",
-                  boxShadow: "inset 0 1px 3px rgba(0,0,0,0.9)",
-                }} />
-              </div>
-
-              {/* Glowing Ballot Paper inserting into slot */}
-              <div 
-                style={{
-                  width: "88px",
-                  height: "75px",
-                  borderRadius: "10px",
-                  background: "#ffffff",
-                  boxShadow: "0 6px 30px rgba(56, 189, 248, 0.7)",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  position: "absolute",
-                  top: "-26px",
-                  zIndex: 2,
-                  animation: "ballotDrop 4s ease-in-out infinite",
-                  border: "1.5px solid rgba(56, 189, 248, 0.8)",
-                }}
-              >
-                <div style={{
-                  width: "36px",
-                  height: "36px",
-                  borderRadius: "8px",
-                  background: "rgba(37, 99, 235, 0.15)",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}>
-                  <Check size={26} color="#2563eb" strokeWidth={3.5} />
-                </div>
-              </div>
-
-              {/* Front Face Checkmark glowing emblem */}
-              <div style={{
-                width: "96px",
-                height: "96px",
-                borderRadius: "24px",
-                background: "linear-gradient(135deg, rgba(56, 189, 248, 0.3) 0%, rgba(37, 99, 235, 0.15) 100%)",
-                border: "2px solid rgba(56, 189, 248, 0.7)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                boxShadow: "0 0 35px rgba(56, 189, 248, 0.5)",
-                marginTop: "45px",
-              }}>
-                <Check size={56} color="#38bdf8" strokeWidth={3.5} />
-              </div>
-            </div>
-          </div>
-
-          {/* ===================== FLOATING REACTION BADGES ===================== */}
-          {/* 1. Purple Chat Bubble (Top-Left) */}
-          <div 
-            className="floating-badge-2"
-            style={{
-              position: "absolute",
-              top: "10%",
-              left: "4%",
-              background: "linear-gradient(135deg, rgba(168, 85, 247, 0.35) 0%, rgba(126, 34, 206, 0.25) 100%)",
-              border: "1.5px solid rgba(192, 132, 252, 0.6)",
-              backdropFilter: "blur(16px)",
-              borderRadius: "20px",
-              padding: "16px 20px",
-              boxShadow: "0 10px 30px rgba(0,0,0,0.4), 0 0 20px rgba(168, 85, 247, 0.3)",
-              zIndex: 3,
-            }}
-          >
-            {/* Chat bubble icon representation */}
-            <div style={{ display: "flex", flexDirection: "column", gap: "5px", width: "32px" }}>
-              <div style={{ height: "4px", width: "100%", background: "#ffffff", borderRadius: "2px" }} />
-              <div style={{ height: "4px", width: "65%", background: "rgba(255,255,255,0.8)", borderRadius: "2px" }} />
-            </div>
-          </div>
-
-          {/* 2. Blue Thumbs Up (Top-Right) */}
-          <div 
-            className="floating-badge-1"
-            style={{
-              position: "absolute",
-              top: "14%",
-              right: "4%",
-              background: "linear-gradient(135deg, rgba(37, 99, 235, 0.4) 0%, rgba(29, 78, 216, 0.3) 100%)",
-              border: "1.5px solid rgba(96, 165, 250, 0.6)",
-              backdropFilter: "blur(16px)",
-              borderRadius: "20px",
-              padding: "16px",
-              display: "flex",
               alignItems: "center",
-              justifyContent: "center",
-              boxShadow: "0 10px 30px rgba(0,0,0,0.4), 0 0 20px rgba(59, 130, 246, 0.4)",
-              zIndex: 3,
             }}
           >
-            <ThumbsUp size={28} color="#ffffff" />
-          </div>
-
-          {/* 3. Yellow Smiley Face (Bottom-Left) */}
-          <div 
-            className="floating-badge-1"
-            style={{
-              position: "absolute",
-              bottom: "16%",
-              left: "2%",
-              background: "linear-gradient(135deg, rgba(245, 158, 11, 0.4) 0%, rgba(217, 119, 6, 0.25) 100%)",
-              border: "1.5px solid rgba(251, 191, 36, 0.6)",
-              backdropFilter: "blur(16px)",
-              borderRadius: "20px",
-              padding: "14px",
-              fontSize: "1.8rem",
-              lineHeight: 1,
-              boxShadow: "0 10px 30px rgba(0,0,0,0.4), 0 0 20px rgba(245, 158, 11, 0.4)",
-              zIndex: 3,
-            }}
-          >
-            😊
-          </div>
-
-          {/* 4. Purple/Pink Bar Chart (Bottom-Right) */}
-          <div 
-            className="floating-badge-2"
-            style={{
-              position: "absolute",
-              bottom: "18%",
-              right: "2%",
-              background: "linear-gradient(135deg, rgba(147, 51, 234, 0.35) 0%, rgba(126, 34, 206, 0.25) 100%)",
-              border: "1.5px solid rgba(192, 132, 252, 0.6)",
-              backdropFilter: "blur(16px)",
-              borderRadius: "20px",
-              padding: "16px",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              boxShadow: "0 10px 30px rgba(0,0,0,0.4), 0 0 20px rgba(168, 85, 247, 0.35)",
-              zIndex: 3,
-            }}
-          >
-            <BarChart2 size={28} color="#ffffff" />
+            <img 
+              src={heroBallotImage} 
+              alt="3D Glowing Ballot Box with Live Reactions" 
+              style={{
+                width: "100%",
+                height: "auto",
+                maxHeight: "440px",
+                objectFit: "contain",
+                borderRadius: "32px",
+                filter: "drop-shadow(0 20px 45px rgba(56, 189, 248, 0.5)) drop-shadow(0 0 35px rgba(168, 85, 247, 0.4))",
+                transition: "transform 0.3s ease",
+              }}
+            />
           </div>
         </div>
       </div>
