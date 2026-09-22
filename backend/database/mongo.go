@@ -26,6 +26,7 @@ type Storage interface {
 	GetUserByEmail(ctx context.Context, email string) (*models.User, error)
 	GetUserByID(ctx context.Context, id primitive.ObjectID) (*models.User, error)
 	VerifyUserEmail(ctx context.Context, email, tokenOrCode string) (*models.User, error)
+	UpdateUserVerificationCode(ctx context.Context, email, code string) error
 	CreatePoll(ctx context.Context, poll *models.Poll) error
 	GetPollByID(ctx context.Context, id primitive.ObjectID) (*models.Poll, error)
 	GetAllPolls(ctx context.Context) ([]models.Poll, error)
@@ -182,6 +183,20 @@ func (m *MongoStorage) VerifyUserEmail(ctx context.Context, email, tokenOrCode s
 		return nil, errors.New("invalid verification code or token")
 	}
 	return &user, nil
+}
+
+func (m *MongoStorage) UpdateUserVerificationCode(ctx context.Context, email, code string) error {
+	clean := strings.ToLower(strings.TrimSpace(email))
+	filter := bson.M{
+		"email": primitive.Regex{Pattern: "^" + regexp.QuoteMeta(clean) + "$", Options: "i"},
+	}
+	update := bson.M{
+		"$set": bson.M{
+			"verification_code": code,
+		},
+	}
+	_, err := m.users.UpdateOne(ctx, filter, update)
+	return err
 }
 
 func (m *MongoStorage) CreatePoll(ctx context.Context, poll *models.Poll) error {
@@ -611,6 +626,31 @@ func (s *InMemoryStorage) VerifyUserEmail(ctx context.Context, email, tokenOrCod
 	user.Badges = append(user.Badges, "Verified Citizen")
 	s.users[email] = user
 	return &user, nil
+}
+
+func (s *InMemoryStorage) UpdateUserVerificationCode(ctx context.Context, email, code string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	clean := strings.ToLower(strings.TrimSpace(email))
+	user, exists := s.users[clean]
+	if !exists {
+		found := false
+		for k, u := range s.users {
+			if strings.EqualFold(k, clean) {
+				user = u
+				clean = k
+				found = true
+				break
+			}
+		}
+		if !found {
+			return errors.New("user not found")
+		}
+	}
+	user.VerificationCode = code
+	s.users[clean] = user
+	return nil
 }
 
 func (s *InMemoryStorage) CreatePoll(ctx context.Context, poll *models.Poll) error {

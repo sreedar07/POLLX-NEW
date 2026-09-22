@@ -12,6 +12,7 @@ import (
 	"live-polling-backend/controllers"
 	"live-polling-backend/database"
 	"live-polling-backend/middleware"
+	"live-polling-backend/services"
 	"live-polling-backend/websocket"
 
 	"github.com/gin-gonic/gin"
@@ -23,6 +24,14 @@ func main() {
 	// Initialize MongoDB and Redis storage managers
 	database.InitMongo(cfg.MongoURI)
 	database.InitRedis(cfg.RedisURI)
+
+	// Initialize Email Service for 2-Step Verification OTP delivery
+	emailService := services.NewEmailService(cfg.SMTPHost, cfg.SMTPPort, cfg.SMTPUsername, cfg.SMTPPassword, cfg.SMTPFrom)
+	if emailService.IsConfigured() {
+		log.Println("[Email Service] Initialized with external SMTP host:", cfg.SMTPHost)
+	} else {
+		log.Println("[Email Service] Initialized in local/console fallback mode (OTPs logged to server output)")
+	}
 
 	// Seed Administrator account strictly from environment variables (No hardcoded credentials)
 	if cfg.AdminEmail != "" && cfg.AdminPassword != "" {
@@ -58,7 +67,7 @@ func main() {
 	})
 
 	// Controllers
-	authController := controllers.NewAuthController(cfg.JWTSecret, cfg.AdminEmail, cfg.AdminPassword)
+	authController := controllers.NewAuthController(cfg.JWTSecret, cfg.AdminEmail, cfg.AdminPassword, emailService)
 	pollController := controllers.NewPollController()
 	adminController := controllers.NewAdminController()
 
@@ -69,6 +78,8 @@ func main() {
 		{
 			auth.POST("/register", authController.Register)
 			auth.POST("/login", middleware.RateLimitLogin(), authController.Login)
+			auth.POST("/verify-otp", authController.VerifyOTP)
+			auth.POST("/resend-otp", authController.ResendOTP)
 			auth.POST("/verify-email", authController.VerifyEmail)
 			auth.POST("/resend-code", authController.ResendCode)
 			auth.GET("/me", middleware.AuthRequired(cfg.JWTSecret), authController.GetMe)

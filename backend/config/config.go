@@ -8,13 +8,18 @@ import (
 )
 
 type Config struct {
-	Port        string
-	MongoURI    string
-	RedisURI    string
+	Port          string
+	MongoURI      string
+	RedisURI      string
 	JWTSecret     string
 	CORSOrigin    string
 	AdminEmail    string
 	AdminPassword string
+	SMTPHost      string
+	SMTPPort      string
+	SMTPUsername  string
+	SMTPPassword  string
+	SMTPFrom      string
 }
 
 func LoadConfig() *Config {
@@ -58,6 +63,18 @@ func LoadConfig() *Config {
 		adminPassword = "Sreedar07@"
 	}
 
+	smtpHost := os.Getenv("SMTP_HOST")
+	smtpPort := os.Getenv("SMTP_PORT")
+	if smtpPort == "" && smtpHost != "" {
+		smtpPort = "587"
+	}
+	smtpUsername := os.Getenv("SMTP_USERNAME")
+	smtpPassword := os.Getenv("SMTP_PASSWORD")
+	smtpFrom := os.Getenv("SMTP_FROM")
+	if smtpFrom == "" {
+		smtpFrom = os.Getenv("SMTP_EMAIL")
+	}
+
 	return &Config{
 		Port:          port,
 		MongoURI:      mongoURI,
@@ -66,5 +83,10 @@ func LoadConfig() *Config {
 		CORSOrigin:    corsOrigin,
 		AdminEmail:    adminEmail,
 		AdminPassword: adminPassword,
+		SMTPHost:      smtpHost,
+		SMTPPort:      smtpPort,
+		SMTPUsername:  smtpUsername,
+		SMTPPassword:  smtpPassword,
+		SMTPFrom:      smtpFrom,
 	}
 }

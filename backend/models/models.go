@@ -95,6 +95,15 @@ type VerifyEmailRequest struct {
 	Email string `json:"email"`
 }
 
+type VerifyOTPRequest struct {
+	Email string `json:"email" binding:"required,email"`
+	OTP   string `json:"otp" binding:"required"`
+}
+
+type ResendOTPRequest struct {
+	Email string `json:"email" binding:"required,email"`
+}
+
 type LoginRequest struct {
 	Email    string `json:"email" binding:"required"`
 	Password string `json:"password" binding:"required"`

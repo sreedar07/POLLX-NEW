@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   ArrowRight,
   Share2,
@@ -12,6 +12,7 @@ import {
   Vote
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
+import { api } from "../../api/client";
 import { ShareModal } from "../../components/ShareModal";
 import heroBallotImage from "../../assets/hero-ballot.png";
 
@@ -19,6 +20,17 @@ export const MobileHome = ({ navigate }) => {
   const { isAdmin } = useAuth();
   const [adminNoticeOpen, setAdminNoticeOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
+  const [activePoll, setActivePoll] = useState(null);
+
+  useEffect(() => {
+    api.get("/api/polls/active")
+      .then((data) => {
+        if (data?.poll) {
+          setActivePoll(data.poll);
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   const handleCreatePollClick = () => {
     if (isAdmin) {
@@ -171,6 +183,45 @@ export const MobileHome = ({ navigate }) => {
           </div>
         </div>
       </div>
+
+      {/* ===================== ACTIVE POLL SPOTLIGHT ===================== */}
+      {activePoll && (
+        <div
+          className="glass-card"
+          onClick={() => navigate("poll")}
+          style={{
+            padding: "16px 18px",
+            background: "linear-gradient(135deg, rgba(37, 99, 235, 0.18) 0%, rgba(99, 102, 241, 0.12) 100%)",
+            border: "1.5px solid rgba(59, 130, 246, 0.4)",
+            cursor: "pointer",
+            boxShadow: "0 4px 20px rgba(37, 99, 235, 0.25)",
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "8px" }}>
+            <span style={{ fontSize: "0.72rem", fontWeight: 700, color: "#38bdf8", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+              ⚡ Trending Live Election
+            </span>
+            <span style={{ fontSize: "0.72rem", color: "#4ade80", fontWeight: 700, display: "flex", alignItems: "center", gap: "4px" }}>
+              <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#22c55e", boxShadow: "0 0 6px #22c55e" }} />
+              Active Now
+            </span>
+          </div>
+
+          <h3 style={{ fontSize: "1.08rem", fontWeight: 800, margin: "0 0 6px", color: "#ffffff", lineHeight: 1.3 }}>
+            {activePoll.title}
+          </h3>
+
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: "12px" }}>
+            <span style={{ fontSize: "0.78rem", color: "var(--text-muted)" }}>
+              {activePoll.options?.length || 0} candidate choices &bull; {activePoll.total_votes || 0} votes cast
+            </span>
+            <span style={{ fontSize: "0.82rem", color: "#60a5fa", fontWeight: 700, display: "flex", alignItems: "center", gap: "4px" }}>
+              <span>Cast Ballot</span>
+              <ArrowRight size={14} />
+            </span>
+          </div>
+        </div>
+      )}
 
       {/* ===================== COMPACT 3D BALLOT SHOWCASE ===================== */}
       <div

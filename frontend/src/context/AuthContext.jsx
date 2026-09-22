@@ -30,10 +30,33 @@ export const AuthProvider = ({ children }) => {
   const login = async (email, password) => {
     const cleanEmail = email ? email.trim() : "";
     const data = await api.post("/api/auth/login", { email: cleanEmail, password });
-    localStorage.setItem("token", data.token);
-    setToken(data.token);
-    setUser(data.user);
+    if (data.token) {
+      localStorage.setItem("token", data.token);
+      setToken(data.token);
+    }
+    if (data.user) {
+      setUser(data.user);
+    }
+    return data;
+  };
+
+  const verifyOTP = async (email, otp) => {
+    const cleanEmail = email ? email.trim() : "";
+    const cleanOtp = otp ? otp.trim() : "";
+    const data = await api.post("/api/auth/verify-otp", { email: cleanEmail, otp: cleanOtp });
+    if (data.token) {
+      localStorage.setItem("token", data.token);
+      setToken(data.token);
+    }
+    if (data.user) {
+      setUser(data.user);
+    }
     return data.user;
+  };
+
+  const resendOTP = async (email) => {
+    const cleanEmail = email ? email.trim() : "";
+    return await api.post("/api/auth/resend-otp", { email: cleanEmail });
   };
 
   const register = async (registrationData) => {
@@ -80,6 +103,8 @@ export const AuthProvider = ({ children }) => {
       token, 
       loading, 
       login, 
+      verifyOTP,
+      resendOTP,
       register, 
       verifyEmail,
       resendCode,

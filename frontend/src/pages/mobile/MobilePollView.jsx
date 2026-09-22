@@ -145,37 +145,35 @@ export const MobilePollView = ({ pollId: propPollId, navigate, initialTab = "vot
       setLoading(true);
       setError("");
       try {
-        let p = null;
-        if (propPollId) {
-          p = await api.get(`/api/polls/${propPollId}`);
-        } else {
-          p = await api.get("/api/polls/active");
+        const fp = getFingerprint();
+        const endpoint = propPollId
+          ? `/api/polls/${propPollId}?fingerprint=${fp}`
+          : `/api/polls/active?fingerprint=${fp}`;
+        const data = await api.get(endpoint);
+        const pollObj = data?.poll || (data?.id ? data : null);
+        setPoll(pollObj);
+        setHasVoted(!!data?.has_voted);
+        if (data?.has_voted) {
+          setMobileTab("results");
         }
-        setPoll(p);
 
-        if (p?.id) {
-          const votedKey = `voted_poll_${p.id}`;
-          if (localStorage.getItem(votedKey)) {
-            setHasVoted(true);
-          }
-          fetchComments(p.id);
+        if (pollObj?.id) {
+          fetchComments(pollObj.id);
         }
       } catch (err) {
         try {
           const polls = await api.get("/api/polls");
           if (polls && polls.length > 0) {
-            const active = polls.find((item) => item.status === "active") || polls[0];
+            const active = polls.find((item) => item.is_active || item.status === "active") || polls[0];
             setPoll(active);
-            const votedKey = `voted_poll_${active.id}`;
-            if (localStorage.getItem(votedKey)) {
-              setHasVoted(true);
+            if (active?.id) {
+              fetchComments(active.id);
             }
-            fetchComments(active.id);
           } else {
-            setError("No active polls found.");
+            setPoll(null);
           }
         } catch {
-          setError(err.message || "Failed to load poll data.");
+          setPoll(null);
         }
       } finally {
         setLoading(false);
@@ -188,18 +186,16 @@ export const MobilePollView = ({ pollId: propPollId, navigate, initialTab = "vot
   // Sync Live WebSocket Updates
   useEffect(() => {
     if (!liveUpdate || !poll) return;
-    if (liveUpdate.poll_id === poll.id) {
+    if (liveUpdate.poll_id === poll.id || !liveUpdate.poll_id) {
       setPoll((prev) => {
         if (!prev) return prev;
-        const updatedOptions = prev.options.map((opt) => {
-          if (liveUpdate.options && liveUpdate.options[opt.id] !== undefined) {
-            return { ...opt, votes: liveUpdate.options[opt.id] };
-          }
-          return opt;
-        });
+        const updatedOptions = (prev.options || []).map((opt) => ({
+          ...opt,
+          votes: liveUpdate.option_votes?.[opt.id] ?? opt.votes,
+        }));
         return {
           ...prev,
-          total_votes: liveUpdate.total_votes || prev.total_votes,
+          total_votes: liveUpdate.total_votes ?? prev.total_votes,
           options: updatedOptions,
         };
       });
@@ -215,19 +211,17 @@ export const MobilePollView = ({ pollId: propPollId, navigate, initialTab = "vot
 
     try {
       const payload = {
-        poll_id: poll.id,
         option_id: selectedOption,
         fingerprint: getFingerprint(),
+        department: user?.department || "General Voter",
       };
 
-      await api.post("/api/vote", payload);
+      await api.post(`/api/polls/${poll.id}/vote`, payload);
 
       setHasVoted(true);
-      localStorage.setItem(`voted_poll_${poll.id}`, selectedOption);
-
       try {
         confetti({
-          particleCount: 75,
+          particleCount: 80,
           spread: 70,
           origin: { y: 0.65 },
           colors: ["#3b82f6", "#6366f1", "#4ade80", "#f59e0b"],
@@ -237,14 +231,9 @@ export const MobilePollView = ({ pollId: propPollId, navigate, initialTab = "vot
       }
 
       setShowCelebration(true);
+      setMobileTab("results");
     } catch (err) {
-      if (err.message && err.message.toLowerCase().includes("already voted")) {
-        setHasVoted(true);
-        localStorage.setItem(`voted_poll_${poll.id}`, selectedOption);
-        setError("You have already cast your ballot in this election.");
-      } else {
-        setError(err.message || "Failed to submit ballot. Please try again.");
-      }
+      setError(err.message || "Failed to submit ballot. Please try again.");
     } finally {
       setVoting(false);
     }
@@ -299,15 +288,48 @@ export const MobilePollView = ({ pollId: propPollId, navigate, initialTab = "vot
     );
   }
 
-  if (error && !poll) {
+  if (!poll) {
     return (
-      <div style={{ padding: "30px 16px" }}>
-        <div className="glass-card" style={{ padding: "24px", textAlign: "center" }}>
-          <h3 style={{ color: "#ef4444", marginBottom: "8px" }}>Poll Unavailable</h3>
-          <p style={{ color: "var(--text-muted)", fontSize: "0.9rem", marginBottom: "16px" }}>{error}</p>
-          <button className="btn-primary" onClick={() => navigate("home")} style={{ padding: "10px 20px" }}>
-            Return to Home
-          </button>
+      <div style={{ padding: "40px 16px 88px", textAlign: "center" }}>
+        <div className="glass-card" style={{ padding: "36px 20px" }}>
+          <div style={{
+            width: "60px",
+            height: "60px",
+            borderRadius: "16px",
+            background: "rgba(59, 130, 246, 0.12)",
+            border: "1.5px solid rgba(59, 130, 246, 0.3)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            margin: "0 auto 16px",
+            color: "#3b82f6"
+          }}>
+            <Radio size={30} />
+          </div>
+          <h2 style={{ fontSize: "1.45rem", fontWeight: 800, marginBottom: "8px" }}>
+            No Active Election in Session
+          </h2>
+          <p style={{ color: "var(--text-muted)", fontSize: "0.88rem", lineHeight: 1.5, maxWidth: "340px", margin: "0 auto 20px" }}>
+            Waiting for an administrator to launch an active poll with candidate options.
+          </p>
+          {isAdmin ? (
+            <button
+              className="btn-primary"
+              onClick={() => navigate("create")}
+              style={{ width: "100%", padding: "12px", fontSize: "0.95rem" }}
+            >
+              <span>Create New Poll Now</span>
+              <ArrowRight size={16} />
+            </button>
+          ) : (
+            <button
+              className="btn-secondary"
+              onClick={() => navigate("home")}
+              style={{ width: "100%", padding: "10px", fontSize: "0.88rem" }}
+            >
+              <span>Return to Home</span>
+            </button>
+          )}
         </div>
       </div>
     );

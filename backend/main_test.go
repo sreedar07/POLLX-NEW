@@ -15,6 +15,7 @@ import (
 	"live-polling-backend/database"
 	"live-polling-backend/middleware"
 	"live-polling-backend/models"
+	"live-polling-backend/services"
 	"live-polling-backend/websocket"
 
 	"github.com/gin-gonic/gin"
@@ -41,7 +42,8 @@ func setupTestRouter() *gin.Engine {
 	router := gin.Default()
 	router.Use(middleware.CORSMiddleware("*"))
 
-	authController := controllers.NewAuthController(cfg.JWTSecret, cfg.AdminEmail, cfg.AdminPassword)
+	emailService := services.NewEmailService("", "", "", "", "")
+	authController := controllers.NewAuthController(cfg.JWTSecret, cfg.AdminEmail, cfg.AdminPassword, emailService)
 	pollController := controllers.NewPollController()
 	adminController := controllers.NewAdminController()
 
@@ -51,6 +53,8 @@ func setupTestRouter() *gin.Engine {
 		{
 			auth.POST("/register", authController.Register)
 			auth.POST("/login", middleware.RateLimitLogin(), authController.Login)
+			auth.POST("/verify-otp", authController.VerifyOTP)
+			auth.POST("/resend-otp", authController.ResendOTP)
 			auth.POST("/verify-email", authController.VerifyEmail)
 			auth.POST("/resend-code", authController.ResendCode)
 			auth.GET("/me", middleware.AuthRequired(cfg.JWTSecret), authController.GetMe)
@@ -344,3 +348,77 @@ func TestCompleteVotingSystem(t *testing.T) {
 		t.Fatalf("Expected 429 Too Many Requests on 6th rapid login attempt, got %d", wBlocked.Code)
 	}
 }
+
+func TestTwoFactorEmailOTPFlow(t *testing.T) {
+	router := setupTestRouter()
+	middleware.ResetLoginRateLimits()
+
+	// 1. Any user can log in with their own email and password
+	customEmail := "anyvoter2026@domain.com"
+	customPass := "MySecretPassword123!"
+
+	loginPayload, _ := json.Marshal(models.LoginRequest{
+		Email:    customEmail,
+		Password: customPass,
+	})
+
+	req := httptest.NewRequest("POST", "/api/auth/login", bytes.NewBuffer(loginPayload))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("Expected 200 OK for custom email login, got %d: %s", w.Code, w.Body.String())
+	}
+
+	var loginResp map[string]interface{}
+	json.Unmarshal(w.Body.Bytes(), &loginResp)
+
+	if loginResp["requires_2fa"] != true {
+		t.Fatalf("Expected requires_2fa to be true, got %v", loginResp["requires_2fa"])
+	}
+
+	otpCode, ok := loginResp["verification_code"].(string)
+	if !ok || len(otpCode) != 6 {
+		t.Fatalf("Expected 6-digit OTP in response, got %v", loginResp["verification_code"])
+	}
+
+	// 2. Complete 2-Step Verification with OTP
+	verifyPayload, _ := json.Marshal(models.VerifyOTPRequest{
+		Email: customEmail,
+		OTP:   otpCode,
+	})
+
+	reqVerify := httptest.NewRequest("POST", "/api/auth/verify-otp", bytes.NewBuffer(verifyPayload))
+	reqVerify.Header.Set("Content-Type", "application/json")
+	wVerify := httptest.NewRecorder()
+	router.ServeHTTP(wVerify, reqVerify)
+
+	if wVerify.Code != http.StatusOK {
+		t.Fatalf("Expected 200 OK for verify-otp, got %d: %s", wVerify.Code, wVerify.Body.String())
+	}
+
+	var authResp models.AuthResponse
+	json.Unmarshal(wVerify.Body.Bytes(), &authResp)
+
+	if authResp.Token == "" {
+		t.Fatal("Expected JWT token upon successful OTP verification")
+	}
+	if !authResp.User.IsVerified {
+		t.Fatal("Expected user to be verified after 2FA OTP")
+	}
+
+	// 3. Test Resend OTP
+	resendPayload, _ := json.Marshal(models.ResendOTPRequest{
+		Email: customEmail,
+	})
+	reqResend := httptest.NewRequest("POST", "/api/auth/resend-otp", bytes.NewBuffer(resendPayload))
+	reqResend.Header.Set("Content-Type", "application/json")
+	wResend := httptest.NewRecorder()
+	router.ServeHTTP(wResend, reqResend)
+
+	if wResend.Code != http.StatusOK {
+		t.Fatalf("Expected 200 OK for resend-otp, got %d: %s", wResend.Code, wResend.Body.String())
+	}
+}
+
