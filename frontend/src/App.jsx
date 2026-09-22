@@ -1,35 +1,40 @@
 import React, { useState, useEffect } from "react";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { Navbar } from "./components/Navbar";
+import { MobileNavbar } from "./components/MobileNavbar";
+import { MobileBottomNav } from "./components/MobileBottomNav";
 import { Login } from "./pages/Login";
 import { Register } from "./pages/Register";
 import { Dashboard } from "./pages/Dashboard";
 import { Home } from "./pages/Home";
+import { MobileHome } from "./pages/mobile/MobileHome";
 import { CreatePoll } from "./pages/CreatePoll";
 import { PollView } from "./pages/PollView";
+import { MobilePollView } from "./pages/mobile/MobilePollView";
 import { VoterHistory } from "./pages/VoterHistory";
 import { ShareModal } from "./components/ShareModal";
-import { ShieldCheck, Zap, Radio, QrCode, Gamepad2, Award, ArrowRight } from "lucide-react";
+import { useDeviceMode } from "./hooks/useDeviceMode";
+import { ShieldCheck, Zap, Radio, QrCode, Gamepad2, Award, ArrowRight, Smartphone, Monitor } from "lucide-react";
 
 const FeaturesPage = ({ navigate }) => (
-  <div style={{ maxWidth: "1100px", margin: "0 auto", padding: "60px 24px" }}>
-    <div style={{ textAlign: "center", marginBottom: "48px" }}>
+  <div style={{ maxWidth: "1100px", margin: "0 auto", padding: "40px 20px" }}>
+    <div style={{ textAlign: "center", marginBottom: "40px" }}>
       <span className="category-pill tech" style={{ marginBottom: "16px" }}>
         Platform Features
       </span>
-      <h1 style={{ fontSize: "2.4rem", fontWeight: 800, marginTop: "12px" }}>
+      <h1 style={{ fontSize: "clamp(1.8rem, 4vw, 2.4rem)", fontWeight: 800, marginTop: "12px" }}>
         Engineered for Next-Gen Engagement
       </h1>
-      <p style={{ color: "var(--text-muted)", fontSize: "1.05rem", maxWidth: "600px", margin: "0 auto" }}>
+      <p style={{ color: "var(--text-muted)", fontSize: "1rem", maxWidth: "600px", margin: "0 auto" }}>
         Experience the world's most dynamic real-time live voting and polling infrastructure.
       </p>
     </div>
 
     <div style={{
       display: "grid",
-      gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))",
-      gap: "24px",
-      marginBottom: "48px",
+      gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+      gap: "20px",
+      marginBottom: "40px",
     }}>
       {[
         { icon: Radio, title: "Zero-Latency WebSockets", desc: "Live bidrectional push updates stream instantly to thousands of concurrent voters without refresh.", color: "#38bdf8" },
@@ -41,68 +46,68 @@ const FeaturesPage = ({ navigate }) => (
       ].map((f, idx) => {
         const Icon = f.icon;
         return (
-          <div key={idx} className="glass-card" style={{ padding: "28px" }}>
+          <div key={idx} className="glass-card" style={{ padding: "24px" }}>
             <div style={{
-              width: "48px",
-              height: "48px",
-              borderRadius: "14px",
+              width: "44px",
+              height: "44px",
+              borderRadius: "12px",
               background: `${f.color}15`,
               color: f.color,
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              marginBottom: "16px",
+              marginBottom: "14px",
               border: `1px solid ${f.color}30`,
             }}>
-              <Icon size={24} />
+              <Icon size={22} />
             </div>
-            <h3 style={{ fontSize: "1.2rem", fontWeight: 700, marginBottom: "8px" }}>{f.title}</h3>
-            <p style={{ color: "var(--text-muted)", fontSize: "0.92rem", lineHeight: 1.5 }}>{f.desc}</p>
+            <h3 style={{ fontSize: "1.15rem", fontWeight: 700, marginBottom: "8px" }}>{f.title}</h3>
+            <p style={{ color: "var(--text-muted)", fontSize: "0.88rem", lineHeight: 1.5 }}>{f.desc}</p>
           </div>
         );
       })}
     </div>
 
     <div style={{ textAlign: "center" }}>
-      <button className="btn-primary" onClick={() => navigate("poll")} style={{ padding: "14px 32px", fontSize: "1.05rem" }}>
+      <button className="btn-primary" onClick={() => navigate("poll")} style={{ padding: "12px 28px", fontSize: "1rem" }}>
         <span>Try Live Poll</span>
-        <ArrowRight size={18} />
+        <ArrowRight size={16} />
       </button>
     </div>
   </div>
 );
 
 const AboutPage = ({ navigate }) => (
-  <div style={{ maxWidth: "860px", margin: "0 auto", padding: "60px 24px" }}>
-    <div className="glass-card" style={{ padding: "48px" }}>
+  <div style={{ maxWidth: "860px", margin: "0 auto", padding: "40px 20px" }}>
+    <div className="glass-card" style={{ padding: "36px 24px" }}>
       <span className="category-pill tech" style={{ marginBottom: "16px" }}>
         About PollX
       </span>
-      <h1 style={{ fontSize: "2.4rem", fontWeight: 800, marginTop: "12px", marginBottom: "20px" }}>
+      <h1 style={{ fontSize: "clamp(1.8rem, 4vw, 2.4rem)", fontWeight: 800, marginTop: "12px", marginBottom: "16px" }}>
         Discuss &bull; Vote &bull; Build a Better Tomorrow
       </h1>
-      <p style={{ color: "var(--text-muted)", fontSize: "1.1rem", lineHeight: 1.7, marginBottom: "24px" }}>
+      <p style={{ color: "var(--text-muted)", fontSize: "1.02rem", lineHeight: 1.6, marginBottom: "24px" }}>
         PollX was built from the ground up to solve trust, transparency, and engagement issues in digital voting. Whether for classroom interactions, developer conferences, corporate AGMs, or civic elections, PollX delivers tamper-proof integrity and live visual delight.
       </p>
       <div style={{
         display: "grid",
-        gridTemplateColumns: "1fr 1fr",
-        gap: "20px",
-        marginTop: "32px",
-        marginBottom: "36px",
+        gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
+        gap: "16px",
+        marginTop: "24px",
+        marginBottom: "32px",
       }}>
-        <div style={{ padding: "20px", borderRadius: "14px", background: "var(--surface-muted)", border: "1px solid var(--border-subtle)" }}>
-          <h4 style={{ fontSize: "1.1rem", fontWeight: 700, marginBottom: "6px" }}>🔒 100% Verifiable</h4>
-          <p style={{ fontSize: "0.9rem", color: "var(--text-muted)", margin: 0 }}>Every vote is backed by cryptographic proofs and audit logging.</p>
+        <div style={{ padding: "18px", borderRadius: "14px", background: "var(--surface-muted)", border: "1px solid var(--border-subtle)" }}>
+          <h4 style={{ fontSize: "1.05rem", fontWeight: 700, marginBottom: "6px" }}>🔒 100% Verifiable</h4>
+          <p style={{ fontSize: "0.88rem", color: "var(--text-muted)", margin: 0 }}>Every vote is backed by cryptographic proofs and audit logging.</p>
         </div>
-        <div style={{ padding: "20px", borderRadius: "14px", background: "var(--surface-muted)", border: "1px solid var(--border-subtle)" }}>
-          <h4 style={{ fontSize: "1.1rem", fontWeight: 700, marginBottom: "6px" }}>⚡ Zero Refreshes</h4>
-          <p style={{ fontSize: "0.9rem", color: "var(--text-muted)", margin: 0 }}>Instant WebSocket push ensures results reflect the pulse of the room.</p>
+        <div style={{ padding: "18px", borderRadius: "14px", background: "var(--surface-muted)", border: "1px solid var(--border-subtle)" }}>
+          <h4 style={{ fontSize: "1.05rem", fontWeight: 700, marginBottom: "6px" }}>⚡ Zero Refreshes</h4>
+          <p style={{ fontSize: "0.88rem", color: "var(--text-muted)", margin: 0 }}>Instant WebSocket push ensures results reflect the pulse of the room.</p>
         </div>
       </div>
       <button className="btn-primary" onClick={() => navigate("poll")}>
         <span>Explore Active Polls</span>
-        <ArrowRight size={18} />
+        <ArrowRight size={16} />
       </button>
     </div>
   </div>
@@ -110,9 +115,11 @@ const AboutPage = ({ navigate }) => (
 
 const AppContent = () => {
   const { isAuthenticated, isAdmin, loading } = useAuth();
+  const { isMobile, deviceMode, setDeviceMode } = useDeviceMode();
   const [route, setRoute] = useState("home");
   const [pollId, setPollId] = useState(null);
   const [globalShareOpen, setGlobalShareOpen] = useState(false);
+  const [mobilePollInitialTab, setMobilePollInitialTab] = useState("vote");
 
   const parseHash = () => {
     const hash = window.location.hash.replace(/^#/, "");
@@ -179,15 +186,37 @@ const AppContent = () => {
 
   return (
     <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}>
-      <Navbar 
-        currentRoute={route} 
-        navigate={navigate} 
-        onShareClick={() => setGlobalShareOpen(true)}
-      />
+      {/* Top Navigation: Renders MobileNavbar for mobile view, Navbar for desktop web */}
+      {isMobile ? (
+        <MobileNavbar
+          currentRoute={route}
+          navigate={navigate}
+          deviceMode={deviceMode}
+          setDeviceMode={setDeviceMode}
+          onShareClick={() => setGlobalShareOpen(true)}
+        />
+      ) : (
+        <Navbar 
+          currentRoute={route} 
+          navigate={navigate} 
+          onShareClick={() => setGlobalShareOpen(true)}
+          deviceMode={deviceMode}
+          setDeviceMode={setDeviceMode}
+        />
+      )}
 
-      <main style={{ flex: 1 }}>
-        {route === "home" && <Home navigate={navigate} />}
-        {route === "poll" && <PollView pollId={pollId} navigate={navigate} />}
+      {/* Main Content Area */}
+      <main style={{ flex: 1, paddingBottom: isMobile ? "68px" : "0" }}>
+        {route === "home" && (
+          isMobile ? <MobileHome navigate={navigate} /> : <Home navigate={navigate} />
+        )}
+        {route === "poll" && (
+          isMobile ? (
+            <MobilePollView pollId={pollId} navigate={navigate} initialTab={mobilePollInitialTab} />
+          ) : (
+            <PollView pollId={pollId} navigate={navigate} />
+          )
+        )}
         {route === "features" && <FeaturesPage navigate={navigate} />}
         {route === "about" && <AboutPage navigate={navigate} />}
         {route === "create" && (isAuthenticated && isAdmin ? <CreatePoll navigate={navigate} /> : <Login navigate={navigate} />)}
@@ -203,6 +232,15 @@ const AppContent = () => {
         )}
       </main>
 
+      {/* Mobile Bottom Dock Bar */}
+      {isMobile && (
+        <MobileBottomNav
+          currentRoute={route}
+          navigate={navigate}
+          onSelectSection={(sec) => setMobilePollInitialTab(sec)}
+        />
+      )}
+
       {/* Global Share Modal */}
       <ShareModal
         poll={{ id: pollId || "active", title: "PollX Live Polling Platform" }}
@@ -210,31 +248,64 @@ const AppContent = () => {
         onClose={() => setGlobalShareOpen(false)}
       />
 
-      {/* Brand Footer */}
-      <footer style={{
-        borderTop: "1px solid var(--border-subtle)",
-        padding: "24px 32px",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
-        color: "var(--text-dim)",
-        fontSize: "0.88rem",
-        marginTop: "auto",
-        flexWrap: "wrap",
-        gap: "12px",
-      }}>
-        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-          <span style={{ fontWeight: 800, color: "var(--text-main)", fontSize: "1.05rem" }}>
-            Poll<span style={{ color: "#3b82f6" }}>X</span>
-          </span>
-          <span>&bull;</span>
-          <span>Discuss &bull; Vote &bull; Build a Better Tomorrow</span>
-        </div>
+      {/* Brand Footer (Desktop & Tablet) */}
+      {!isMobile && (
+        <footer style={{
+          borderTop: "1px solid var(--border-subtle)",
+          padding: "20px 32px",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          color: "var(--text-dim)",
+          fontSize: "0.85rem",
+          marginTop: "auto",
+          flexWrap: "wrap",
+          gap: "12px",
+        }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            <span style={{ fontWeight: 800, color: "var(--text-main)", fontSize: "1.05rem" }}>
+              Poll<span style={{ color: "#3b82f6" }}>X</span>
+            </span>
+            <span>&bull;</span>
+            <span>Discuss &bull; Vote &bull; Build a Better Tomorrow</span>
+          </div>
 
-        <div style={{ fontSize: "0.82rem" }}>
-          Go &bull; Gin Engine &bull; Redis Realtime &bull; React 19
-        </div>
-      </footer>
+          <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+            {/* View Indicator & Switcher */}
+            <div style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+              padding: "4px 10px",
+              borderRadius: "999px",
+              background: "var(--surface-muted)",
+              border: "1px solid var(--border-subtle)",
+              fontSize: "0.78rem",
+            }}>
+              <Monitor size={13} color="#38bdf8" />
+              <span>Web Interface</span>
+              <button
+                onClick={() => setDeviceMode("mobile")}
+                style={{
+                  background: "none",
+                  border: "none",
+                  color: "#60a5fa",
+                  cursor: "pointer",
+                  textDecoration: "underline",
+                  fontSize: "0.76rem",
+                  padding: 0,
+                }}
+              >
+                Switch to Mobile
+              </button>
+            </div>
+
+            <div style={{ fontSize: "0.82rem" }}>
+              Go &bull; Gin &bull; Redis &bull; React 19
+            </div>
+          </div>
+        </footer>
+      )}
     </div>
   );
 };

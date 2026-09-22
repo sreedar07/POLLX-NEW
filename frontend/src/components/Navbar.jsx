@@ -11,10 +11,11 @@ import {
   LayoutDashboard,
   Award,
   Sparkles,
-  User
+  User,
+  Smartphone
 } from "lucide-react";
 
-export const Navbar = ({ currentRoute, navigate, onShareClick }) => {
+export const Navbar = ({ currentRoute, navigate, onShareClick, deviceMode, setDeviceMode }) => {
   const { user, logout, isAuthenticated, isAdmin } = useAuth();
   const [theme, setTheme] = useState(() => localStorage.getItem("app-theme") || "dark");
 
@@ -195,6 +196,40 @@ export const Navbar = ({ currentRoute, navigate, onShareClick }) => {
             )}
           </div>
         </button>
+
+        {/* Mobile View Switcher Button */}
+        {setDeviceMode && (
+          <button
+            onClick={() => setDeviceMode("mobile")}
+            title="Preview Mobile Interface"
+            style={{
+              height: "30px",
+              padding: "0 12px",
+              borderRadius: "999px",
+              background: "var(--surface-muted)",
+              border: "1px solid var(--border-subtle)",
+              display: "flex",
+              alignItems: "center",
+              gap: "6px",
+              color: "var(--text-muted)",
+              fontSize: "0.78rem",
+              fontWeight: 600,
+              cursor: "pointer",
+              transition: "all 0.2s ease",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.borderColor = "var(--border-strong)";
+              e.currentTarget.style.color = "var(--text-main)";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.borderColor = "var(--border-subtle)";
+              e.currentTarget.style.color = "var(--text-muted)";
+            }}
+          >
+            <Smartphone size={13} color="#60a5fa" />
+            <span>Mobile View</span>
+          </button>
+        )}
 
         {/* Share Button if viewing poll */}
         {currentRoute === "poll" && (

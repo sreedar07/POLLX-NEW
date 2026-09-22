@@ -50,7 +50,7 @@ export const Login = ({ navigate }) => {
           }}>
             <Shield size={26} color="#ffffff" />
           </div>
-          <h2 style={{ fontSize: "1.6rem", fontWeight: 800 }}>Sign In to PulseVote</h2>
+          <h2 style={{ fontSize: "1.6rem", fontWeight: 800 }}>Sign In to PollX</h2>
           <p style={{ color: "var(--text-muted)", fontSize: "0.875rem", marginTop: "6px" }}>
             Access verified voting, ballot history, or administrative results.
           </p>

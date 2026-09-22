@@ -299,20 +299,31 @@ export const ChillOutSnakeLounge = ({ pollTitle, leadingOption }) => {
       </div>
 
       {/* Main Arcade Frame */}
-      <div style={{
-        display: "grid",
-        gridTemplateColumns: "minmax(320px, 420px) 1fr",
-        gap: "36px",
-        alignItems: "center",
-      }}>
+      <div 
+        className="snake-arcade-grid"
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+          gap: "28px",
+          alignItems: "center",
+        }}
+      >
         {/* Left: Interactive Canvas Screen */}
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
-          <div className="arcade-screen-frame" style={{ position: "relative", width: "360px", height: "360px" }}>
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", width: "100%" }}>
+          <div 
+            className="arcade-screen-frame" 
+            style={{ 
+              position: "relative", 
+              width: "100%",
+              maxWidth: "360px", 
+              aspectRatio: "1/1",
+            }}
+          >
             <canvas
               ref={canvasRef}
               width={360}
               height={360}
-              style={{ display: "block", borderRadius: "14px" }}
+              style={{ display: "block", borderRadius: "14px", width: "100%", height: "100%" }}
             />
 
             {/* Overlay when game not playing */}
